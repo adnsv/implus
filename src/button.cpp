@@ -1,0 +1,404 @@
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include <imgui_internal.h>
+
+#include <optional>
+
+#include <implus/blocks.hpp>
+#include <implus/button.hpp>
+#include <implus/color.hpp>
+#include <implus/dropdown.hpp>
+
+namespace ImPlus {
+
+// note: name is used only for test_engine
+auto CustomButton(ImID id, char const* name, ImVec2 const& measured_size, float baseline_offset,
+    ImVec2 const& actual_size, ImGuiButtonFlags flags, ButtonDrawCallback const& draw_callback)
+    -> InteractState
+{
+    auto state = InteractState{};
+
+    auto const& g = *GImGui;
+    auto const* window = g.CurrentWindow;
+    if (window->SkipItems)
+        return state;
+
+    auto pos = window->DC.CursorPos;
+    if ((flags & ImGuiButtonFlags_AlignTextBaseLine) &&
+        baseline_offset < window->DC.CurrLineTextBaseOffset)
+        pos.y += window->DC.CurrLineTextBaseOffset - baseline_offset;
+
+    ImGui::ItemSize(measured_size, baseline_offset);
+    auto const bb = ImRect{pos, pos + actual_size};
+    if (!ImGui::ItemAdd(bb, id))
+        return state;
+
+    auto effective_flags = flags;
+
+    if (g.CurrentItemFlags & ImGuiItemFlags_ButtonRepeat)
+        effective_flags |= ImGuiButtonFlags_Repeat;
+
+    state.Pressed = ImGui::ButtonBehavior(bb, id, &state.Hovered, &state.Held, effective_flags);
+    ImGui::RenderNavHighlight(bb, id);
+
+    if (!(state.Pressed || state.Held) && g.NavId == id && !g.NavDisableHighlight) {
+        if (ImGui::Shortcut(ImGuiKey_Enter, id) || ImGui::Shortcut(ImGuiKey_KeypadEnter, id)) {
+            state.Pressed = true;
+        }
+    }
+
+    if (draw_callback)
+        draw_callback(id, window->DrawList, bb.Min, bb.Max, state);
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    IMGUI_TEST_ENGINE_ITEM_INFO(id, name, window->DC.LastItemStatusFlags);
+#endif
+
+    return state;
+}
+
+inline auto make_pointy_shaped_path(
+    ImDrawList* dl, float l, float t, float r, float b, float rounding, ImGuiDir dir)
+{
+    auto w = std::max(0.0f, r - l);
+    auto h = std::max(0.0f, b - t);
+    rounding = std::min({rounding, w * 0.5f, h * 0.5f});
+
+    auto const slope_adj = std::min(h * 0.5f * 0.577f, w * 0.33f);
+
+    auto l_adj = (dir == ImGuiDir_Left) ? slope_adj * 0.5f + rounding * 0.577f : rounding;
+    auto r_adj = (dir == ImGuiDir_Right) ? slope_adj * 0.5f + rounding * 0.577f : rounding;
+
+    if (rounding < 0.5f) {
+        dl->PathLineTo({l + l_adj, t});
+        dl->PathLineTo({r - r_adj, t});
+        if (dir == ImGuiDir_Right)
+            dl->PathLineTo({r, (t + b) * 0.5f});
+        dl->PathLineTo({r - r_adj, b});
+        dl->PathLineTo({l + l_adj, b});
+        if (dir == ImGuiDir_Left)
+            dl->PathLineTo({l, (t + b) * 0.5f});
+    }
+    else {
+        dl->PathArcToFast({l + l_adj, t + rounding}, rounding, (dir == ImGuiDir_Left) ? 7 : 6, 9);
+        dl->PathArcToFast(
+            {r - r_adj, t + rounding}, rounding, 9, (dir == ImGuiDir_Right) ? 11 : 12);
+        if (dir == ImGuiDir_Right)
+            dl->PathLineTo({r, (t + b) * 0.5f});
+        dl->PathArcToFast({r - r_adj, b - rounding}, rounding, (dir == ImGuiDir_Right) ? 1 : 0, 3);
+        dl->PathArcToFast({l + l_adj, b - rounding}, rounding, 3, (dir == ImGuiDir_Left) ? 5 : 6);
+        if (dir == ImGuiDir_Left)
+            dl->PathLineTo({l, (t + b) * 0.5f});
+    }
+}
+
+inline auto make_shaped_path(
+    ImDrawList* dl, ImVec2 bb_min, ImVec2 bb_max, ButtonShape shape, float rounding)
+{
+    switch (shape) {
+    case ButtonShape::PointyLeft:
+        make_pointy_shaped_path(
+            dl, bb_min.x, bb_min.y, bb_max.x, bb_max.y, rounding, ImGuiDir_Left);
+        break;
+    case ButtonShape::PointyRight:
+        make_pointy_shaped_path(
+            dl, bb_min.x, bb_min.y, bb_max.x, bb_max.y, rounding, ImGuiDir_Right);
+        break;
+    default: dl->PathRect(bb_min, bb_max, rounding, 0);
+    }
+}
+
+inline auto calc_sidebar_rect(ImRect bb, Side side) -> std::optional<ImRect>
+{
+    switch (side) {
+    case Side::West: {
+        auto const w = std::round(std::min((bb.Max.x - bb.Min.x) * 0.25f, to_pt(0.2_em)));
+        bb.Max.x = bb.Min.x + w;
+        return bb;
+    } break;
+    case Side::East: {
+        auto const w = std::round(std::min((bb.Max.x - bb.Min.x) * 0.25f, to_pt(0.2_em)));
+        bb.Min.x = bb.Max.x - w;
+        return bb;
+    } break;
+    case Side::North: {
+        auto const h = std::round(std::max((bb.Max.y - bb.Min.y) * 0.25f, to_pt(0.2_em)));
+        bb.Max.y = bb.Min.y + h;
+        return bb;
+    } break;
+    case Side::South: {
+        auto const h = std::round(std::min((bb.Max.y - bb.Min.y) * 0.25f, to_pt(0.2_em)));
+        bb.Min.y = bb.Max.y - h;
+        return bb;
+    } break;
+    }
+    return {};
+}
+
+inline auto add_shaped_outline(ImDrawList* dl, ImVec2 bb_min, ImVec2 bb_max, ButtonShape shape,
+    float rounding, ImU32 col, float thickness)
+{
+    if ((col & IM_COL32_A_MASK) == 0)
+        return;
+
+    bb_min += ImVec2{0.5f, 0.5f};
+    bb_max -= ImVec2{0.49f, 0.49f};
+
+    make_shaped_path(dl, bb_min, bb_max, shape, rounding);
+    dl->PathStroke(col, ImDrawFlags_Closed, thickness);
+}
+
+inline auto add_shaped_filled(
+    ImDrawList* dl, ImVec2 bb_min, ImVec2 bb_max, ButtonShape shape, float rounding, ImU32 col)
+{
+    if ((col & IM_COL32_A_MASK) == 0)
+        return;
+
+    bb_min += ImVec2{0.5f, 0.5f};
+    bb_max -= ImVec2{0.49f, 0.49f};
+
+    make_shaped_path(dl, bb_min, bb_max, shape, rounding);
+    dl->PathFillConvex(col);
+}
+
+inline auto render_shaped_nav_highlight(
+    ImRect const& bb, ButtonShape shape, float rounding, ImGuiID id, bool compact)
+{
+    auto& g = *GImGui;
+    if (id != g.NavId)
+        return;
+    if (g.NavDisableHighlight)
+        return;
+    auto* window = g.CurrentWindow;
+    if (window->DC.NavHideHighlightOneFrame)
+        return;
+
+    auto display_rect = bb;
+    display_rect.ClipWith(window->ClipRect);
+    const float thickness = 2.0f;
+
+    auto const col = ImGui::GetColorU32(ImGuiCol_NavHighlight);
+    auto* dl = window->DrawList;
+
+    if (compact) {
+        add_shaped_outline(dl, display_rect.Min, display_rect.Max, shape, rounding, col, thickness);
+    }
+    else {
+
+        auto const distance = 3.0f + thickness * 0.5f;
+        display_rect.Expand(ImVec2(distance, distance));
+        bool fully_visible = window->ClipRect.Contains(display_rect);
+        if (!fully_visible)
+            dl->PushClipRect(display_rect.Min, display_rect.Max);
+        add_shaped_outline(dl, display_rect.Min, display_rect.Max, shape,
+            rounding ? rounding + distance : 0.0f, col, thickness);
+        if (!fully_visible)
+            dl->PopClipRect();
+    }
+}
+
+inline auto render_shaped_frame(
+    ImDrawList* dl, ImVec2 bb_min, ImVec2 bb_max, ButtonShape shape, ImU32 col, float rounding)
+{
+    ImGuiContext& g = *GImGui;
+    ImGuiWindow* window = g.CurrentWindow;
+    add_shaped_filled(dl, bb_min, bb_max, shape, rounding, col);
+    const float border_size = g.Style.FrameBorderSize;
+    if (border_size > 0.0f) {
+        add_shaped_outline(dl, bb_min + ImVec2(1, 1), bb_max + ImVec2(1, 1), shape,
+            ImGui::GetColorU32(ImGuiCol_BorderShadow), rounding, border_size);
+        add_shaped_outline(
+            dl, bb_min, bb_max, shape, ImGui::GetColorU32(ImGuiCol_Border), rounding, border_size);
+    }
+}
+
+auto MakeButtonDrawCallback(ButtonOptions const& opts, Content::DrawCallback&& on_content)
+    -> ButtonDrawCallback
+{
+    return [opts, on_content = std::move(on_content)](ImGuiID id, ImDrawList* dl,
+               ImVec2 const& bb_min, ImVec2 const& bb_max, InteractState const& state) {
+        auto const bb = ImRect{bb_min, bb_max};
+
+        auto const cs = opts.ColorSet ? opts.ColorSet(state) : ColorSets_RegularButton(state);
+        auto const bg_clr = ImGui::GetColorU32(cs.Background);
+
+        auto const rounding = CalcFrameRounding(opts.Rounded);
+        auto const padding = CalcFramePadding(opts.Padding);
+        auto const shape = opts.Shape.value_or(ButtonShape::Regular);
+
+        render_shaped_nav_highlight(bb, shape, rounding, id, false);
+
+        if (opts.DefaultAction) {
+            auto const d = ImVec2{3.0f, 3.0f};
+            add_shaped_outline(dl, bb_min - d, bb_max + d, shape, rounding + d.y, bg_clr, 1.5f);
+        }
+
+        render_shaped_frame(dl, bb_min, bb_max, shape, bg_clr, rounding);
+
+        if (opts.Sidebar) {
+            if (auto r = calc_sidebar_rect({bb_min, bb_max}, opts.Sidebar->Side)) {
+                auto const clr = opts.Sidebar->Color.value_or(cs.Content);
+                dl->AddRectFilled(r->Min, r->Max, ImGui::GetColorU32(clr));
+            }
+        }
+
+        if (on_content) {
+            auto const tl = bb.Min + padding;
+            auto const br = bb.Max - padding;
+            ImGui::PushClipRect(tl, br, true);
+            on_content(dl, tl, br, cs);
+            ImGui::PopClipRect();
+        }
+    };
+}
+
+static auto name_for_test_engine(ICD_view const& content)
+{
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    return std::string{content.Caption};
+#else
+    return std::string{};
+#endif
+}
+
+auto CalcPaddedSize(ImVec2 const& inner, ImVec2 const& padding) -> ImVec2
+{
+    return {std::round(inner.x + padding.x * 2.0f), std::round(inner.y + padding.y * 2.0f)};
+}
+
+auto ICDCustomButton(ImID id, ICD_view const& content, Content::Layout layout,
+    ICDOptions const& ic_opts, Sizing::XYArg const& sizing,
+    std::optional<length> const& default_overflow_width,
+    Text::CDOverflowPolicy const& overflow_policy, ImGuiButtonFlags flags,
+    ButtonOptions const& btn_opts) -> InteractState
+{
+    auto& g = *GImGui;
+    auto window = g.CurrentWindow;
+    if (window->SkipItems)
+        return {};
+    auto& style = g.Style;
+
+    auto const padding = CalcFramePadding();
+    auto const region_avail = ImGui::GetContentRegionAvail();
+    auto ow = Sizing::CalcOverflowWidth(
+        sizing.Horz, default_overflow_width, padding.x * 2.0f, region_avail.x);
+
+    auto const block = ICDBlock{content, layout, ic_opts, overflow_policy, ow};
+    auto measured_size = CalcPaddedSize(block.Size, padding);
+
+    if (auto w = Sizing::GetDesired(sizing.Horz))
+        if (*w > measured_size.x)
+            measured_size.x = *w;
+    if (auto h = Sizing::GetDesired(sizing.Vert))
+        if (*h > measured_size.y)
+            measured_size.y = *h;
+
+    auto const actual_size = Sizing::CalcActual(sizing, measured_size, region_avail);
+
+    auto draw_callback = MakeButtonDrawCallback(btn_opts, MakeContentDrawCallback(block));
+
+    return CustomButton(id, name_for_test_engine(content).c_str(), measured_size, padding.y,
+        actual_size, flags, draw_callback);
+}
+
+auto Button(ImID id, ICD_view const& content, Sizing::XYArg const& sizing, ImGuiButtonFlags flags)
+    -> bool
+{
+    auto lt = Style::Button::Layout();
+    auto op = Style::Button::OverflowPolicy();
+    auto ow = Style::Button::OverflowWidth();
+
+    auto dr = ICDCustomButton(id, content, lt, ICDOptions{}, sizing, ow, op, flags, ButtonOptions{});
+    return dr.Pressed;
+}
+
+auto BeginDropDownButton(ImID id, ICD_view const& content, Sizing::XYArg const& sizing,
+    Placement::Options const& placement) -> bool
+{
+    auto& g = *GImGui;
+    auto* window = ImGui::GetCurrentWindow();
+
+    auto save_flags = g.NextWindowData.Flags;
+    g.NextWindowData.ClearFlags();
+    if (window->SkipItems)
+        return false;
+
+    ImGui::PushID(id);
+
+    auto const popup_id = ImHashStr("##DropDownPopup", 0, id);
+    auto popup_open = ImGui::IsPopupOpen(popup_id, ImGuiPopupFlags_None);
+
+    auto color_callback = [&](InteractState const& st) -> ColorSet {
+        if (st.Pressed || popup_open) {
+            return ColorSet{
+                .Content = ImGui::GetStyleColorVec4(ImGuiCol_Text),
+                .Background = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive),
+            };
+        }
+        else
+            return ColorSets_RegularButton(st);
+    };
+
+    auto btn_opts = ButtonOptions{
+        .ColorSet =
+            [popup_open](ImPlus::InteractState const& st) {
+                return ColorSets_RegularButton(
+                    !popup_open ? st : ImPlus::InteractState{.Hovered = true, .Held = true});
+            },
+    };
+
+    auto lt = Style::Button::Layout();
+    auto op = Style::Button::OverflowPolicy();
+    auto ow = Style::Button::OverflowWidth();
+
+    auto dr = ICDCustomButton("##", content, lt, ICDOptions{.WithDropdownArrow = true}, sizing, ow,
+        op, ImGuiButtonFlags_PressedOnClick | ImGuiButtonFlags_NoSetKeyOwner, btn_opts);
+
+    ImGui::PopID();
+
+    if (dr.Pressed && !popup_open) {
+        ImGui::OpenPopupEx(popup_id, ImGuiPopupFlags_None);
+        popup_open = true;
+    }
+
+    if (!popup_open)
+        return false;
+
+    auto last_item_in_parent = g.LastItemData;
+    g.NextWindowData.Flags = save_flags;
+    auto menu_is_open = ImPlus::BeginDropDownPopup(
+        popup_id, last_item_in_parent.Rect.Min, last_item_in_parent.Rect.Max, placement);
+    if (menu_is_open) {
+        g.LastItemData = last_item_in_parent;
+        if (g.HoveredWindow == window)
+            g.LastItemData.StatusFlags |= ImGuiItemStatusFlags_HoveredWindow;
+    }
+    else {
+        g.NextWindowData.ClearFlags();
+    }
+    return menu_is_open;
+}
+
+void EndDropDownButton() { ImGui::EndPopup(); }
+
+auto ColorSet_LinkButton(InteractState const& st) -> ColorSet
+{
+    auto bg = st.Held && st.Hovered ? Style::LinkButton::Color::Background::Active()
+              : st.Hovered          ? Style::LinkButton::Color::Background::Hovered()
+                                    : Style::LinkButton::Color::Background::Regular();
+    return ColorSet{.Content = Style::LinkButton::Color::Content(), .Background = bg};
+};
+
+auto LinkButton(
+    ImID id, ICD_view const& content, Sizing::XYArg const& sizing, ImGuiButtonFlags flags) -> bool
+{
+    auto lt = Style::LinkButton::Layout();
+    auto op = Style::LinkButton::OverflowPolicy();
+    auto ow = Style::LinkButton::OverflowWidth();
+    auto dr = ICDCustomButton(
+        id, content, lt, ICDOptions{}, sizing, ow, op, flags, {.ColorSet = ColorSet_LinkButton});
+    if (dr.Hovered)
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    return dr.Pressed;
+}
+
+} // namespace ImPlus
