@@ -169,7 +169,7 @@ auto SelectableBox(ImID id, char const* name, bool selected, ImGuiSelectableFlag
         disp_state.Held = true;
 
     // Render
-    if (!NeedsHoverHighlight())
+    if (!NeedsHoverHighlight() && !disp_state.Held && !disp_state.Pressed)
         disp_state.Hovered = false;
 
     auto color_set = on_color   ? on_color(disp_state)
