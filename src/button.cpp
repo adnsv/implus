@@ -218,7 +218,11 @@ auto MakeButtonDrawCallback(ButtonOptions const& opts, Content::DrawCallback&& o
                ImVec2 const& bb_min, ImVec2 const& bb_max, InteractState const& state) {
         auto const bb = ImRect{bb_min, bb_max};
 
-        auto const cs = opts.ColorSet ? opts.ColorSet(state) : ColorSets_RegularButton(state);
+        auto effective_state = state;
+        if (!NeedsHoverHighlight())
+            effective_state.Hovered = false;
+
+        auto const cs = opts.ColorSet ? opts.ColorSet(effective_state) : ColorSets_RegularButton(effective_state);
         auto const bg_clr = ImGui::GetColorU32(cs.Background);
 
         auto const rounding = CalcFrameRounding(opts.Rounded);

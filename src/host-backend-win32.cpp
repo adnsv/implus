@@ -6,6 +6,7 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+#include <tpcshrd.h>
 #include <windows.h>
 
 #include <backends/imgui_impl_win32.h>
@@ -38,14 +39,12 @@ auto to_wstring(std::string_view s) -> std::wstring
 {
     if (s.empty())
         return {};
-    auto n = ::MultiByteToWideChar(
-        CP_THREAD_ACP, 0, s.data(), int(s.size()), nullptr, 0);
+    auto n = ::MultiByteToWideChar(CP_THREAD_ACP, 0, s.data(), int(s.size()), nullptr, 0);
     if (!n)
         return {};
     auto ret = std::wstring{};
     ret.resize(n);
-    ::MultiByteToWideChar(
-        CP_THREAD_ACP, 0, s.data(), int(s.size()), ret.data(), n);
+    ::MultiByteToWideChar(CP_THREAD_ACP, 0, s.data(), int(s.size()), ret.data(), n);
     return ret;
 }
 
@@ -53,14 +52,14 @@ auto to_string(std::wstring_view s) -> std::string
 {
     if (s.empty())
         return {};
-    auto n = ::WideCharToMultiByte(CP_THREAD_ACP, 0, s.data(), int(s.size()),
-        nullptr, 0, nullptr, nullptr);
+    auto n = ::WideCharToMultiByte(
+        CP_THREAD_ACP, 0, s.data(), int(s.size()), nullptr, 0, nullptr, nullptr);
     if (!n)
         return {};
     auto ret = std::string{};
     ret.resize(n);
-    ::WideCharToMultiByte(CP_THREAD_ACP, 0, s.data(), int(s.size()), ret.data(),
-        n, nullptr, nullptr);
+    ::WideCharToMultiByte(
+        CP_THREAD_ACP, 0, s.data(), int(s.size()), ret.data(), n, nullptr, nullptr);
     return ret;
 }
 
@@ -105,10 +104,9 @@ bool CreateDeviceD3D(HWND hWnd)
         D3D_FEATURE_LEVEL_11_0,
         D3D_FEATURE_LEVEL_10_0,
     };
-    if (D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL,
-            createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd,
-            &g_pSwapChain, &g_pd3dDevice, &featureLevel,
-            &g_pd3dDeviceContext) != S_OK)
+    if (D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags,
+            featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice,
+            &featureLevel, &g_pd3dDeviceContext) != S_OK)
         return false;
 
     CreateRenderTarget();
@@ -142,8 +140,7 @@ void CreateRenderTarget()
 {
     ID3D11Texture2D* pBackBuffer;
     g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
-    g_pd3dDevice->CreateRenderTargetView(
-        pBackBuffer, NULL, &g_mainRenderTargetView);
+    g_pd3dDevice->CreateRenderTargetView(pBackBuffer, NULL, &g_mainRenderTargetView);
     pBackBuffer->Release();
 }
 
@@ -176,15 +173,14 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_SIZE:
         if (g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED) {
             CleanupRenderTarget();
-            g_pSwapChain->ResizeBuffers(0, (UINT)LOWORD(lParam),
-                (UINT)HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
+            g_pSwapChain->ResizeBuffers(
+                0, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
             CreateRenderTarget();
         }
         {
             int width = short(LOWORD(lParam));
             int height = short(HIWORD(lParam));
-            auto w = reinterpret_cast<Window*>(
-                ::GetWindowLongPtrW(hWnd, GWLP_USERDATA));
+            auto w = reinterpret_cast<Window*>(::GetWindowLongPtrW(hWnd, GWLP_USERDATA));
             if (w) {
                 if (w->OnFramebufferSize)
                     w->OnFramebufferSize({width, height});
@@ -196,8 +192,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         return 0;
 
     case WM_MOVE:
-        if (auto w = reinterpret_cast<Window*>(
-                ::GetWindowLongPtrW(hWnd, GWLP_USERDATA))) {
+        if (auto w = reinterpret_cast<Window*>(::GetWindowLongPtrW(hWnd, GWLP_USERDATA))) {
             int x = short(LOWORD(lParam));
             int y = short(HIWORD(lParam));
             notifyMove(*w, {x, y});
@@ -209,32 +204,34 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             return 0;
         break;
 
-    case WM_ERASEBKGND:
-        return TRUE;
+    case WM_ERASEBKGND: return TRUE;
 
     case WM_PAINT: {
-        auto w =
-            reinterpret_cast<Window*>(::GetWindowLongPtrW(hWnd, GWLP_USERDATA));
+        auto w = reinterpret_cast<Window*>(::GetWindowLongPtrW(hWnd, GWLP_USERDATA));
         if (w && w->OnRefresh && AllowRefresh())
             w->OnRefresh();
     } break;
 
     case WM_CLOSE: {
         // change should close instead of default DestroyWindow
-        auto w =
-            reinterpret_cast<Window*>(::GetWindowLongPtrW(hWnd, GWLP_USERDATA));
+        auto w = reinterpret_cast<Window*>(::GetWindowLongPtrW(hWnd, GWLP_USERDATA));
         if (w)
             w->SetShouldClose(true);
         return 0;
     }
 
-    case WM_DESTROY:
-        ::PostQuitMessage(0);
-        return 0;
+    case WM_DESTROY: ::PostQuitMessage(0); return 0;
+
+    case WM_TABLET_QUERYSYSTEMGESTURESTATUS:
+        // https://msdn.microsoft.com/en-us/library/windows/desktop/bb969148(v=vs.85).aspx
+        // return TABLET_DISABLE_PRESSANDHOLD;
+        return TABLET_DISABLE_PRESSANDHOLD | TABLET_DISABLE_PENTAPFEEDBACK |
+               TABLET_DISABLE_PENBARRELFEEDBACK | TABLET_DISABLE_TOUCHUIFORCEON |
+               TABLET_DISABLE_TOUCHUIFORCEOFF | TABLET_DISABLE_TOUCHSWITCH | TABLET_DISABLE_FLICKS |
+               TABLET_DISABLE_SMOOTHSCROLLING | TABLET_DISABLE_FLICKFALLBACKKEYS;
 
     case WM_DROPFILES: {
-        auto w =
-            reinterpret_cast<Window*>(::GetWindowLongPtrW(hWnd, GWLP_USERDATA));
+        auto w = reinterpret_cast<Window*>(::GetWindowLongPtrW(hWnd, GWLP_USERDATA));
         if (!w || !w->OnDropFiles)
             return 0;
 
@@ -302,11 +299,11 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
             .lpszClassName = wnd_class_name,
         };
 
-        wc.hIcon = (HICON)::LoadImageW(
-            m, L"GLFW_ICON", IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
+        wc.hIcon =
+            (HICON)::LoadImageW(m, L"GLFW_ICON", IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
         if (!wc.hIcon)
-            wc.hIcon = (HICON)::LoadImageW(nullptr, IDI_APPLICATION, IMAGE_ICON,
-                0, 0, LR_DEFAULTSIZE | LR_SHARED);
+            wc.hIcon = (HICON)::LoadImageW(
+                nullptr, IDI_APPLICATION, IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
 
         ::RegisterClassExW(&wc);
 
@@ -335,8 +332,8 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
 
     b = ConstrainToMonitor(b);
 
-    auto hwnd = ::CreateWindowExW(0l, wnd_class_name, wtitle.c_str(), wstyle,
-        b.pos.x, b.pos.y, b.size.w, b.size.h, nullptr, nullptr, inst, nullptr);
+    auto hwnd = ::CreateWindowExW(0l, wnd_class_name, wtitle.c_str(), wstyle, b.pos.x, b.pos.y,
+        b.size.w, b.size.h, nullptr, nullptr, inst, nullptr);
 
     this->handle_ = hwnd;
 
@@ -435,10 +432,7 @@ auto Window::ContentScale() const -> Scale
     return static_cast<float>(y);*/
 }
 
-auto Window::ShouldClose() const -> bool
-{
-    return should_close_ || all_should_close;
-}
+auto Window::ShouldClose() const -> bool { return should_close_ || all_should_close; }
 
 void Window::SetShouldClose(bool close) { should_close_ = close; }
 
@@ -493,8 +487,7 @@ void Window::RenderFrame(bool swap_buffers)
     ImGui::Render();
 
     g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);
-    g_pd3dDeviceContext->ClearRenderTargetView(
-        g_mainRenderTargetView, (float*)&Background);
+    g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, (float*)&Background);
 
     if (OnBeforeDraw)
         OnBeforeDraw();
@@ -619,8 +612,8 @@ void Window::perform_locate(Location const& loc, bool constrain_to_monitor)
     };
 
     auto set_bounds = [&](RECT const& r) {
-        ::SetWindowPos(hwnd, nullptr, r.left, r.top, r.right - r.left,
-            r.bottom - r.top, SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+        ::SetWindowPos(hwnd, nullptr, r.left, r.top, r.right - r.left, r.bottom - r.top,
+            SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
     };
 
     suspendNotifications = true;
@@ -677,12 +670,11 @@ void Window::perform_locate(Location const& loc, bool constrain_to_monitor)
     }
     else { // !fullscreen
         if (visible) {
-            setup_normal_placement(
-                regular_rect, want_maximized ? SW_MAXIMIZE : SW_NORMAL);
+            setup_normal_placement(regular_rect, want_maximized ? SW_MAXIMIZE : SW_NORMAL);
         }
         else {
-            ::SetWindowLongW(hwnd, GWL_STYLE,
-                want_maximized ? sty | WS_MAXIMIZE : sty & ~WS_MAXIMIZE);
+            ::SetWindowLongW(
+                hwnd, GWL_STYLE, want_maximized ? sty | WS_MAXIMIZE : sty & ~WS_MAXIMIZE);
             auto r = want_maximized ? get_monitor_rect(true) : regular_rect;
             set_bounds(r);
         }

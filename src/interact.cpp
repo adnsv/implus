@@ -14,4 +14,11 @@ auto GetSelectionModifier() -> SelectionModifier
         return SelectionModifier::Regular;
 }
 
+auto MouseSourceIsTouchScreen() -> bool
+{
+    return ImGui::GetIO().MouseSource == ImGuiMouseSource_TouchScreen;
+}
+
+auto NeedsHoverHighlight() -> bool { return !MouseSourceIsTouchScreen(); }
+
 } // namespace ImPlus

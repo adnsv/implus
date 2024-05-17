@@ -348,7 +348,7 @@ void BeginMainInstructionGroup(
 
     ImGui::BeginGroup();
 
-    auto ctx = Flow{"##dlg.main.instruction.flow", 20_em};
+    auto ctx = Flow{"##dlg.main.instruction.flow", 25_em};
     if (!main_instruction.empty())
         ctx.Paragraph(main_instruction, {.Font = GetMainInstructionFont()});
 

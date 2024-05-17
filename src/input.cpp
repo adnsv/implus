@@ -8,12 +8,25 @@
 
 namespace ImPlus {
 
+void internal::make_localized_decimal(ImGuiInputTextFlags& f) {
+    f = f | ImGuiInputTextFlags_LocalizeDecimalPoint;
+}
+
 void internal::disable_mark_edited(ImGuiInputTextFlags& f)
 {
     f = f | ImGuiInputTextFlags_NoMarkEdited;
 }
 
 void internal::mark_last_item_edited() { ImGui::MarkItemEdited(ImGui::GetItemID()); }
+
+void internal::reload_input_text_buffer()
+{
+    if (ImGui::IsItemActive()) {
+        auto ts = ImGui::GetInputTextState(ImGui::GetItemID());
+        if (ts)
+            ts->ReloadUserBufAndSelectAll();
+    }
+}
 
 std::optional<char> cached_user_decimal_char = {};
 
@@ -46,8 +59,8 @@ static auto callback(ImGuiInputTextCallbackData* data) -> int
     return 0;
 }
 
-auto InputTextMultiline(ImID id, std::string& str, const ImVec2& size, ImGuiInputTextFlags flags)
-    -> bool
+auto InputTextMultiline(
+    ImID id, std::string& str, const ImVec2& size, ImGuiInputTextFlags flags) -> bool
 {
     flags |= ImGuiInputTextFlags_CallbackResize;
     auto data = callback_data{str};
@@ -95,8 +108,8 @@ auto handleContextPopup(ImGuiID input_id, ImGuiInputTextFlags flags)
 }
 #endif
 
-auto InputTextWithHint(ImID id, const char* hint, std::string& str, ImGuiInputTextFlags flags)
-    -> bool
+auto InputTextWithHint(
+    ImID id, const char* hint, std::string& str, ImGuiInputTextFlags flags) -> bool
 {
     flags |= ImGuiInputTextFlags_CallbackResize;
     auto data = callback_data{str};

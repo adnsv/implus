@@ -619,7 +619,8 @@ auto make_button(ImPlus::ICD_view const& content, bool selected, bool enabled,
     auto clicked = display_btn(ts, id, block, sz, selected, flags, opts);
     ImGui::EndDisabled();
 
-    if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_AllowWhenDisabled) &&
+    if (!ImPlus::MouseSourceIsTouchScreen() &&
+        ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_AllowWhenDisabled) &&
         (!effective_tooltip.Caption.empty() || !effective_tooltip.Descr.empty())) {
         auto bb = ImPlus::Rect{ImGui::GetItemRectMin(), ImGui::GetItemRectMax()};
         auto d = std::round(ImPlus::GetFontHeight() * 0.2f);

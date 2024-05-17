@@ -11,8 +11,10 @@
 namespace ImPlus {
 
 namespace internal {
+void make_localized_decimal(ImGuiInputTextFlags& f);
 void disable_mark_edited(ImGuiInputTextFlags& f);
 void mark_last_item_edited();
+void reload_input_text_buffer();
 auto user_decimal_char() -> char;
 
 constexpr auto trim_whitespace(std::string_view s) -> std::string_view
@@ -40,17 +42,25 @@ auto InputText(ImID id, std::string& str, ImGuiInputTextFlags flags = 0) -> bool
 auto InputTextMultiline(
     ImID id, std::string& str, const ImVec2& size, ImGuiInputTextFlags flags = 0) -> bool;
 
-auto InputTextWithHint(ImID id, const char* hint, std::string& str, ImGuiInputTextFlags flags = 0)
-    -> bool;
+auto InputTextWithHint(
+    ImID id, const char* hint, std::string& str, ImGuiInputTextFlags flags = 0) -> bool;
 
 template <typename T> struct sentinel {
     std::string key;
     T val;
 };
 
+template <typename T> auto same_value(T const& a, T const& b) -> bool
+{
+    if constexpr (std::is_floating_point_v<T>)
+        return std::isnan(a) ? std::isnan(b) : a == b;
+    else
+        return a == b;
+}
+
 template <typename T>
-auto find_sentinel_by_key(std::span<sentinel<T> const> const& sentinels, std::string_view key)
-    -> sentinel<T> const*
+auto find_sentinel_by_key(
+    std::span<sentinel<T> const> const& sentinels, std::string_view key) -> sentinel<T> const*
 {
     for (auto&& kv : sentinels)
         if (kv.key == key)
@@ -59,9 +69,19 @@ auto find_sentinel_by_key(std::span<sentinel<T> const> const& sentinels, std::st
 }
 
 template <typename T>
-auto find_sentinel_by_val(std::span<sentinel<T> const> const& sentinels, T const& val)
-    -> sentinel<T> const*
+auto find_sentinel_by_val(
+    std::span<sentinel<T> const> const& sentinels, T const& val) -> sentinel<T> const*
 {
+    if constexpr (std::is_floating_point_v<T>) {
+        // special handler for NaNs
+        if (std::isnan(val)) {
+            for (auto&& kv : sentinels)
+                if (std::isnan(kv.val))
+                    return &kv;
+            return nullptr;
+        }
+    }
+
     for (auto&& kv : sentinels)
         if (kv.val == val)
             return &kv;
@@ -81,7 +101,8 @@ auto InputIntegralEx(ImID id, char const* hint, T& v, int base = 10,
     char buf[buf_capacity];
     // char const* buf_end = buf + buf_capacity;
 
-    if (auto const* sent = find_sentinel_by_val(sentinels, v)) {
+    auto const* sent = find_sentinel_by_val(sentinels, v);
+    if (sent) {
         auto n = std::snprintf(buf, buf_capacity, "%s", sent->key.c_str());
         buf[n] = 0;
     }
@@ -101,7 +122,10 @@ auto InputIntegralEx(ImID id, char const* hint, T& v, int base = 10,
     auto value_changed = false;
     if (text_changed) {
         auto s = internal::trim_whitespace(std::string_view{buf});
-        if (auto sent = find_sentinel_by_key(sentinels, s)) {
+        if (sent && s.contains(sent->key)) {
+            internal::reload_input_text_buffer();
+        }
+        else if (auto sent = find_sentinel_by_key(sentinels, s)) {
             v = sent->val;
         }
         else if (s.empty()) {
@@ -146,7 +170,9 @@ auto InputFloatingPointEx(ImID id, char const* hint, T& v,
     auto const spec = std::is_same_v<std::remove_cvref_t<vtype>, long double> ? "%.16Lg"
                       : std::is_same_v<std::remove_cvref_t<vtype>, double>    ? "%.16lg"
                                                                               : "%.7g";
-    if (auto const* sent = find_sentinel_by_val(sentinels, v)) {
+
+    auto const* sent = find_sentinel_by_val(sentinels, v);
+    if (sent) {
         auto n = std::snprintf(buf, buf_capacity, "%s", sent->key.c_str());
         buf[n] = 0;
     }
@@ -170,14 +196,19 @@ auto InputFloatingPointEx(ImID id, char const* hint, T& v,
                 }
     }
 
-    auto flags = ImGuiInputTextFlags(ImGuiInputTextFlags_AutoSelectAll);
+    auto flags =
+        ImGuiInputTextFlags(ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsDecimal);
+    internal::make_localized_decimal(flags);
     internal::disable_mark_edited(flags);
 
     auto text_changed = InputTextBuffered(id, hint, buf, buf_capacity, flags);
     auto value_changed = false;
     if (text_changed) {
         auto s = internal::trim_whitespace(std::string_view{buf});
-        if (auto const* sent = find_sentinel_by_key(sentinels, s)) {
+        if (sent && s.contains(sent->key)) {
+            internal::reload_input_text_buffer();
+        }
+        else if (auto const* sent = find_sentinel_by_key(sentinels, s)) {
             v = sent->val;
         }
         else if (s.empty()) {

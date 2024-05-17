@@ -19,4 +19,8 @@ enum class SelectionModifier {
 
 auto GetSelectionModifier() -> SelectionModifier;
 
+auto MouseSourceIsTouchScreen() -> bool;
+
+auto NeedsHoverHighlight() -> bool;
+
 } // namespace ImPlus

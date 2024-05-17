@@ -8,8 +8,8 @@
 namespace ImPlus {
 
 auto SelectableBox(ImID id, char const* name, bool selected, ImGuiSelectableFlags flags,
-    ImVec2 size, InteractColorSetCallback on_color, Content::DrawCallback draw_callback)
-    -> InteractState
+    ImVec2 size, InteractColorSetCallback on_color,
+    Content::DrawCallback draw_callback) -> InteractState
 {
     auto state = InteractState{};
 
@@ -169,6 +169,9 @@ auto SelectableBox(ImID id, char const* name, bool selected, ImGuiSelectableFlag
         disp_state.Held = true;
 
     // Render
+    if (!NeedsHoverHighlight())
+        disp_state.Hovered = false;
+
     auto color_set = on_color   ? on_color(disp_state)
                      : selected ? ColorSets_SelectedSelectable(disp_state)
                                 : ColorSets_RegularSelectable(disp_state);

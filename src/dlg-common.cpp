@@ -15,7 +15,7 @@ void Message::OpenEx(ImPlus::ImID id, std::string_view title, Message&& content)
 {
     auto opts = Dlg::Options{
         .Title = std::string{title},
-        .StretchContentWidth = 10_em,
+        .StretchContentWidth = 12_em,
     };
     OpenModality(id, std::move(opts), [content = std::move(content)]() {
         BeginMainInstructionGroup(content.Icon, content.MainInstruction, content.Flow);
