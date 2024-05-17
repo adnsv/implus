@@ -124,9 +124,6 @@ constexpr auto ConvertSingleModFlagToKey(ImGuiKeyChord key, KeyNameFlags flags =
     case ImGuiMod_Shift: return ImGuiKey_ReservedForModShift;
     case ImGuiMod_Alt: return ImGuiKey_ReservedForModAlt;
     case ImGuiMod_Super: return ImGuiKey_ReservedForModSuper;
-    case ImGuiMod_Shortcut:
-        return (flags & KeyNameFlags_MacOS) ? ImGuiKey_ReservedForModSuper
-                                            : ImGuiKey_ReservedForModCtrl;
     default: return ImGuiKey_None;
     }
 }

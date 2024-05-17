@@ -14,7 +14,7 @@ void List::ProcessAccelerators()
             break;
         for (auto kc : kv.second.Accelerators) {
             if (kc & ImGuiMod_Shortcut)
-                kc = ImGui::FixupKeyChord(GImGui, kc);
+                kc = ImGui::FixupKeyChord(kc);
         
             auto m = ImGuiKeyChord(kc & ImGuiMod_Mask_);
             if (m != mods)
