@@ -201,7 +201,7 @@ public:
     }
     template <typename R>
     requires(std::ranges::random_access_range<R> &&
-             std::is_convertible_v<std::ranges::range_value_t<R>, std::string>)
+                std::is_convertible_v<std::ranges::range_value_t<R>, std::string>)
     auto ComboStringField(ImID id, ICD_view const& key, R&& items, std::size_t& sel_index) -> bool
     {
         auto w = FieldPrefix(key, Style::Flow::ComboFieldWidth());
@@ -216,6 +216,13 @@ public:
         auto w = FieldPrefix(key, Style::Flow::ComboFieldWidth());
         ImGui::SetNextItemWidth(w);
         return Combo::Strings(id, items, sel_index);
+    }
+    auto ComboStringItemsField(ImID id, ICD_view const& key, std::size_t count,
+        std::size_t& sel_index, std::function<std::string(std::size_t idx)> on_item)
+    {
+        auto w = FieldPrefix(key, Style::Flow::ComboFieldWidth());
+        ImGui::SetNextItemWidth(w);
+        return Combo::StringItems(id, count, sel_index, on_item);
     }
     template <typename R, typename Stringer>
     requires(Listbox::detail::input<R> && Listbox::detail::stringer_unindexed<R, Stringer>)
@@ -243,8 +250,8 @@ public:
         return ImPlus::Checkbox(id, {}, checked);
     }
 
-    auto TogglerField(ImID id, ICD_view const& key, bool& active, TogglerOptions const& opts = {})
-        -> bool
+    auto TogglerField(
+        ImID id, ICD_view const& key, bool& active, TogglerOptions const& opts = {}) -> bool
     {
         auto box_w = ImPlus::Measure::Toggler(opts).x;
         auto w = FieldPrefix(key, {box_w});

@@ -122,7 +122,7 @@ auto InputIntegralEx(ImID id, char const* hint, T& v, int base = 10,
     auto value_changed = false;
     if (text_changed) {
         auto s = internal::trim_whitespace(std::string_view{buf});
-        if (sent && s.find(sent->key) == std::string_view::npos) {
+        if (sent && s.find(sent->key) != std::string_view::npos) {
             internal::reload_input_text_buffer();
         }
         else if (auto sent = find_sentinel_by_key(sentinels, s)) {
@@ -205,7 +205,7 @@ auto InputFloatingPointEx(ImID id, char const* hint, T& v,
     auto value_changed = false;
     if (text_changed) {
         auto s = internal::trim_whitespace(std::string_view{buf});
-        if (sent && s.find(sent->key) == std::string_view::npos) {
+        if (sent && s.find(sent->key) != std::string_view::npos) {
             internal::reload_input_text_buffer();
         }
         else if (auto const* sent = find_sentinel_by_key(sentinels, s)) {
