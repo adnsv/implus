@@ -23,6 +23,20 @@ namespace internal {
 void SetNextWindowLimits(float item_height, float item_spacing);
 } // namespace internal
 
+inline auto Begin(
+    char const* label, std::string const& preview, ImGuiComboFlags flags = ImGuiComboFlags_None) -> bool
+{
+    auto const item_height = ImGui::GetFontSize();
+    auto const& item_spacing = ImGui::GetStyle().ItemSpacing;
+    internal::SetNextWindowLimits(item_height, item_spacing.y);
+    return ImGui::BeginCombo(label, preview.c_str(), flags);
+}
+
+inline void End()
+{
+    ImGui::EndCombo();
+}
+
 inline auto StringItems(ImID id, std::size_t count, std::size_t& sel_index,
     std::function<std::string(std::size_t idx)> on_item) -> bool
 {
@@ -80,7 +94,7 @@ auto Strings(ImID id, R&& items, std::size_t& sel_index, Stringer&& to_string) -
 
 template <typename R>
 requires(std::ranges::random_access_range<R> &&
-         std::is_convertible_v<std::ranges::range_value_t<R>, std::string>)
+            std::is_convertible_v<std::ranges::range_value_t<R>, std::string>)
 auto Strings(ImID id, R&& items, std::size_t& sel_index) -> bool
 {
     return Strings(id, std::forward<R>(items), sel_index,

@@ -208,6 +208,14 @@ public:
         ImGui::SetNextItemWidth(w);
         return Combo::Strings(id, std::forward<R>(items), sel_index);
     }
+    auto BeginComboField(char const* label, ICD_view const& key, std::string const& preview,
+        ImGuiComboFlags flags = ImGuiComboFlags_None) -> bool
+    {
+        auto w = FieldPrefix(key, Style::Flow::ComboFieldWidth());
+        ImGui::SetNextItemWidth(w);
+        return Combo::Begin(label, preview, flags);
+    }
+
     template <typename T>
     requires std::is_convertible_v<T, std::string>
     auto ComboStringField(ImID id, ICD_view const& key, std::initializer_list<T> items,
