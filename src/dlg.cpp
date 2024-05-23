@@ -72,7 +72,7 @@ auto BeginContentArea() -> bool
 auto get_shortcut_owner(ImGuiKeyChord kc) -> ImGuiID
 {
     auto d = ImGui::GetShortcutRoutingData(kc);
-    return d ? d->RoutingCurr : ImGuiKeyOwner_None;
+    return d ? d->RoutingCurr : ImGuiKeyOwner_NoOwner;
 }
 
 void DoneContentArea()
@@ -438,7 +438,7 @@ void DbgDisplayNavInfo()
     auto print_id = [&](char const* prefix, ImGuiID id) {
         if (id == info.WindowID)
             ImGui::Text("%s -> DlgWnd", prefix);
-        else if (id == ImGuiKeyOwner_None)
+        else if (id == ImGuiKeyOwner_NoOwner)
             ImGui::Text("%s -> none", prefix);
         else
             ImGui::Text("%s -> %8x", prefix, id);

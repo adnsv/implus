@@ -205,8 +205,8 @@ auto Display(ImID id, SourceCallback&& buttons, ImVec2 const& align_all)
     // default/focused
 
     auto default_index = std::optional<std::size_t>{};
-    auto default_id = ImGuiKeyOwner_None;
-    auto cancel_id = ImGuiKeyOwner_None;
+    auto default_id = ImGuiKeyOwner_NoOwner;
+    auto cancel_id = ImGuiKeyOwner_NoOwner;
 
     if (Style::Buttonbar::HighlightDefault() &&
         ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
@@ -218,12 +218,12 @@ auto Display(ImID id, SourceCallback&& buttons, ImVec2 const& align_all)
 
             auto const id = window->GetID(index);
             if (!en.is_disabled) {
-                if (en.is_default && default_id == ImGuiKeyOwner_None) {
+                if (en.is_default && default_id == ImGuiKeyOwner_NoOwner) {
                     default_index = index;
                     default_id = id;
                 }
 
-                if (en.is_cancel && cancel_id == ImGuiKeyOwner_None) {
+                if (en.is_cancel && cancel_id == ImGuiKeyOwner_NoOwner) {
                     cancel_id = id;
                 }
             }
@@ -239,7 +239,7 @@ auto Display(ImID id, SourceCallback&& buttons, ImVec2 const& align_all)
         // see if the "Enter" shortcut is available
         auto avail = [default_id](ImGuiKeyChord kc) {
             auto d = ImGui::GetShortcutRoutingData(kc);
-            return !d || d->RoutingCurr == ImGuiKeyOwner_None || d->RoutingCurr == default_id;
+            return !d || d->RoutingCurr == ImGuiKeyOwner_NoOwner || d->RoutingCurr == default_id;
         };
         if (!avail(ImGuiKey_Enter) && !avail(ImGuiKey_KeypadEnter)) {
             default_index = {};
