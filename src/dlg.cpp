@@ -135,8 +135,9 @@ auto IsCancelShortcut(ImGuiID owner_id) -> bool
     const bool allow_gamepad = (io.ConfigFlags & ImGuiConfigFlags_NavEnableGamepad) != 0 &&
                                (io.BackendFlags & ImGuiBackendFlags_HasGamepad) != 0;
 
-    return ImGui::Shortcut(ImGuiKey_Escape, owner_id) ||
-           (allow_gamepad && ImGui::Shortcut(ImGuiKey_NavGamepadCancel, owner_id));
+    return ImGui::Shortcut(ImGuiKey_Escape, ImGuiInputFlags_None, owner_id) ||
+           (allow_gamepad &&
+               ImGui::Shortcut(ImGuiKey_NavGamepadCancel, ImGuiInputFlags_None, owner_id));
 }
 
 auto IsRejectActionKeyPressed() -> bool

@@ -41,7 +41,7 @@ auto CustomButton(ImID id, char const* name, ImVec2 const& measured_size, float 
     ImGui::RenderNavHighlight(bb, id);
 
     if (!(state.Pressed || state.Held) && g.NavId == id && !g.NavDisableHighlight) {
-        if (ImGui::Shortcut(ImGuiKey_Enter, id) || ImGui::Shortcut(ImGuiKey_KeypadEnter, id)) {
+        if (ImGui::Shortcut(ImGuiKey_Enter, ImGuiInputFlags_None, id) || ImGui::Shortcut(ImGuiKey_KeypadEnter, ImGuiInputFlags_None, id)) {
             state.Pressed = true;
         }
     }
