@@ -4,6 +4,7 @@
 
 #include "implus/overridable.hpp"
 #include <charconv>
+#include <cstdint>
 #include <cstddef>
 #include <functional>
 #include <limits>

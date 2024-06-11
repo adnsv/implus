@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <charconv>
 #include <concepts>
 #include <initializer_list>
