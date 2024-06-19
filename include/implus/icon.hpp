@@ -118,14 +118,14 @@ private:
     std::vector<IconOverlay> overlays_;
 
 public:
-    constexpr Icon() noexcept = default;
+    Icon() noexcept = default;
     Icon(Icon const&) = default;
     Icon(Icon&&) = default;
-    constexpr Icon(Glyph const& g)
+    Icon(Glyph const& g)
         : content_{g}
     {
     }
-    constexpr Icon(Glyph&& g)
+    Icon(Glyph&& g)
         : content_{std::move(g)}
     {
     }
@@ -133,15 +133,15 @@ public:
         : content_{Glyph{g}}
     {
     }
-    constexpr Icon(Builtin shape, length size = 1_em)
+    Icon(Builtin shape, length size = 1_em)
         : content_{builtin_content{shape, size}}
     {
     }
-    constexpr Icon(CustomIconData const& c)
+    Icon(CustomIconData const& c)
         : content_{c}
     {
     }
-    constexpr Icon(CustomIconData&& c)
+    Icon(CustomIconData&& c)
         : content_{std::move(c)}
     {
     }

@@ -16,7 +16,7 @@ brew install freetype fontconfig
 On Linux:
 
 ```bash
-sudo apt install libfontconfig-dev libfreetype-dev
+sudo apt install libfontconfig-dev libfreetype-dev libpulse-dev libsndio-dev libdrm-dev libgbm-dev libasound2-dev
 ```
 
 

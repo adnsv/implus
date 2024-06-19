@@ -37,21 +37,21 @@ struct ICD_view {
     std::string_view Caption = {};
     std::string_view Descr = {};
 
-    constexpr ICD_view() noexcept {}
+    ICD_view() noexcept {}
 
     ICD_view(ICD_view const&) noexcept = default;
     ICD_view(ICD_view&&) noexcept = default;
 
     template <typename C>
     requires std::is_convertible_v<C, std::string_view>
-    constexpr ICD_view(C const& label) noexcept
+    ICD_view(C const& label) noexcept
         : Caption{label}
     {
     }
 
     template <typename C>
     requires std::is_convertible_v<C, std::string_view>
-    constexpr ICD_view(ImPlus::Icon const& icon, C const& caption) noexcept
+    ICD_view(ImPlus::Icon const& icon, C const& caption) noexcept
         : Icon{icon}
         , Caption{caption}
     {
@@ -59,7 +59,7 @@ struct ICD_view {
     template <typename C, typename D>
     requires(std::is_convertible_v<C, std::string_view> &&
                 std::is_convertible_v<D, std::string_view>)
-    constexpr ICD_view(ImPlus::Icon const& icon, C const& caption, D const& descr) noexcept
+    ICD_view(ImPlus::Icon const& icon, C const& caption, D const& descr) noexcept
         : Icon{icon}
         , Caption{caption}
         , Descr{descr}
