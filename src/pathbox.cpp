@@ -6,6 +6,7 @@
 #include "internal/draw-utils.hpp"
 
 #include <cmath>
+#include <cstdint>
 #include <vector>
 
 namespace ImPlus::Pathbox {

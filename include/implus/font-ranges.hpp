@@ -2,6 +2,7 @@
 
 #include <charconv>
 #include <concepts>
+#include <cstdint>
 #include <initializer_list>
 #include <string_view>
 
