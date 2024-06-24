@@ -125,7 +125,6 @@ static int event_watcher(void* data, SDL_Event* event)
         if (w && w->OnDropFiles) {
             auto p = event->drop.data;
             w->OnDropFiles(1, (const char**)&p);
-            SDL_free(p);
         }
     }
 
