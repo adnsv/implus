@@ -80,19 +80,6 @@ endif()
 
 target_link_libraries(implus PUBLIC "imgui" "implus::lbrk")
 
-if(ANDROID)
-    set(IMPLUS_USE_COMPAT_DEFAULT ON)
-else()
-    set(IMPLUS_USE_COMPAT_DEFAULT OFF)
-endif()
-
-set(IMPLUS_USE_COMPAT ${IMPLUS_USE_COMPAT_DEFAULT} CACHE BOOL "Use std::ranges compatibility shim")
-if(IMPLUS_USE_COMPAT)
-    message(STATUS "IMPLUS -- using std::ranges compatibility shim")
-    add_subdirectory(compat)
-    target_link_libraries(implus PUBLIC "implus_compat")
-endif()
-
 set(IMPLUS_HOST_MACRO "IMPLUS_HOST_${IMPLUS_HOST_IMPL}")
 set(IMPLUS_RENDER_MACRO "IMPLUS_RENDER_${IMGUI_RENDER_IMPL}")
 

@@ -103,6 +103,11 @@ auto ImPlus::Host::GetBackendNativeHandle(ImPlus::Host::Window const& wnd) -> Na
 #elif defined(SDL_PLATFORM_MACOS)
     // auto p = (__bridge NSWindow *)SDL_GetProperty(props, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER,
     // NULL); return {p->id, NativeHandleType::COCOA_ID}
+    return {};
+
+#elif defined(SDL_PLATFORM_ANDROID)
+    auto w = SDL_GetProperty(props, SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER, NULL);
+    return {w, NativeHandleType::ANDROID_WINDOW};
 
 #elif defined(SDL_PLATFORM_LINUX)
     auto drv = SDL_GetCurrentVideoDriver();
