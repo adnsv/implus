@@ -56,6 +56,10 @@ static void draw_builtin(
         dl->AddCircleFilled(c, 0.5f * size, clr);
     } break;
 
+    case Icon::Builtin::Bullet: {
+        dl->AddCircleFilled(c, 0.25f * size, clr);
+    } break;
+
     case Icon::Builtin::DotDotDot: {
         auto r = size * 0.1f;
         auto x = std::round(c.x) + 0.5f;

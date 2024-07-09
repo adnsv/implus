@@ -100,6 +100,7 @@ public:
         Box,
         Circle,
         Spinner,
+        Bullet,
         DotDotDot,
     };
 
