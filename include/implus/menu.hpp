@@ -1,5 +1,7 @@
 #pragma once
 
+#include <implus/id.hpp>
+
 namespace ImPlus {
 
 // main menu bar that supports rhs item alignment and overflow
@@ -18,5 +20,8 @@ void MenuTrailPlacement();
 
 auto BeginMenu(char const* label, bool enabled = true) -> bool;
 void EndMenu();
+
+auto MenuItem(ImPlus::ImID const& id, ImPlus::Icon const& icon, std::string_view caption,
+    std::string_view shortcut = {}, bool selected = false, bool enabled = true) -> bool;
 
 } // namespace ImPlus
