@@ -47,6 +47,7 @@ using InteractColorSetCallback = std::function<auto(InteractState const&)->Color
 extern InteractColorSetCallback ColorSets_RegularButton;
 extern InteractColorSetCallback ColorSets_Frame;
 extern InteractColorSetCallback ColorSets_Tab;
+extern InteractColorSetCallback ColorSets_MenuItem;
 
 extern InteractColorSetCallback ColorSets_RegularSelectable;
 extern InteractColorSetCallback ColorSets_SelectedSelectable;

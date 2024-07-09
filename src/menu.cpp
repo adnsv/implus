@@ -231,10 +231,12 @@ auto MenuItem(ImPlus::ImID const& id, ImPlus::Icon const& icon, std::string_view
         float min_w = window->DC.MenuColumns.DeclColumns(icon_blk.Size.x, caption_blk.Size.x,
             shortcut_blk.Size.x, checkmark_w); // Feedback for next frame
         auto h = std::max({caption_blk.Size.y, icon_blk.Size.y, shortcut_blk.Size.y});
+        h = std::max(h, ImPlus::to_pt<ImPlus::rounded>(Style::Menu::Vertical::MinItemHeight()));
+
         float stretch_w = std::max(0.0f, ImGui::GetContentRegionAvail().x - min_w);
 
         auto ir = ImPlus::SelectableBox("", "", selected,
-            selectable_flags | ImGuiSelectableFlags_SpanAvailWidth, {min_w, h}, {},
+            selectable_flags | ImGuiSelectableFlags_SpanAvailWidth, {min_w, h}, ColorSets_MenuItem,
             [&](ImDrawList* dl, ImVec2 const& bb_min, ImVec2 const& bb_max, ColorSet const& cs) {
                 if (g.LastItemData.StatusFlags & ImGuiItemStatusFlags_Visible) {
                     auto x = bb_min.x + offsets->OffsetLabel;

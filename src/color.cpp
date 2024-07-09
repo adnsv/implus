@@ -83,10 +83,20 @@ InteractColorSetCallback ColorSets_Frame =
 InteractColorSetCallback ColorSets_Tab =
     ics_<ImGuiCol_Text, ImGuiCol_Tab, ImGuiCol_TabHovered, ImGuiCol_TabActive>;
 
+InteractColorSetCallback ColorSets_MenuItem = [](InteractState const& state) -> ColorSet {
+    return ColorSet{
+        .Content = Color::FromStyle(ImGuiCol_Text),
+        .Background = state.Hovered && state.Held ? Color::FromStyle(ImGuiCol_HeaderActive)
+                      : state.Hovered             ? Color::FromStyle(ImGuiCol_HeaderHovered)
+                                                  : ImVec4{0, 0, 0, 0},
+    };
+};
+
 InteractColorSetCallback ColorSets_RegularSelectable = [](InteractState const& state) -> ColorSet {
     return ColorSet{
         .Content = Color::FromStyle(ImGuiCol_Text),
-        .Background = state.Hovered && state.Held ? Color::ModulateAlpha(Color::FromStyle(ImGuiCol_Text), 0.15f)
+        .Background = state.Hovered && state.Held
+                          ? Color::ModulateAlpha(Color::FromStyle(ImGuiCol_Text), 0.15f)
                       : state.Hovered ? Color::ModulateAlpha(Color::FromStyle(ImGuiCol_Text), 0.1f)
                                       : ImVec4{0, 0, 0, 0},
     };

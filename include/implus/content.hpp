@@ -19,7 +19,7 @@ enum class Layout {
     //    -----------------------------
     HorzNear,
 
-    // HorzCentered:
+    // HorzCenter:
     //    -----------------------------
     //   |                             |
     //   |      [ICO] CAPTION          |
@@ -39,7 +39,7 @@ enum class Layout {
     //    --------------------------
     VertNear,
 
-    // VertCentered
+    // VertCenter
     //    --------------------------
     //   |                          |
     //   |          [ICO]           |
