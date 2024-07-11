@@ -32,15 +32,17 @@ using namespace ImPlus::literals;
 
 struct DemoBase {
     std::string name = "Unitled";
-    ImGuiWindowFlags flags = {};
+    ImGuiWindowFlags cflags = {};
+    ImGuiWindowFlags wflags = {};
 
-    DemoBase(char const* n, ImGuiWindowFlags f = ImGuiWindowFlags_None)
+    DemoBase(char const* n, ImGuiChildFlags cf, ImGuiWindowFlags wf)
         : name{n}
-        , flags{f}
+        , cflags{cf}
+        , wflags{wf}
     {
     }
     virtual ~DemoBase() {}
-    virtual void Display(){};
+    virtual void Display() {};
 };
 
 struct ButtonDemo : public DemoBase {
@@ -48,7 +50,7 @@ struct ButtonDemo : public DemoBase {
     opt_parameter<length> force_height = {"force_height", 3_em};
 
     ButtonDemo()
-        : DemoBase{"Button", ImGuiWindowFlags_AlwaysUseWindowPadding}
+        : DemoBase{"Button", ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None}
     {
     }
     ~ButtonDemo() override {}
@@ -64,8 +66,9 @@ struct ButtonDemo : public DemoBase {
         // --- content ------------------
 
         ImGui::BeginChild("scrollable", {0, 0},
-            ImGuiChildFlags_Border | ImGuiChildFlags_AlwaysUseWindowPadding,
-            ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NavFlattened);
+            ImGuiChildFlags_Border | ImGuiChildFlags_AlwaysUseWindowPadding |
+                ImGuiChildFlags_NavFlattened,
+            ImGuiWindowFlags_HorizontalScrollbar);
 
         auto size_arg = Sizing::XYArg{};
         if (force_width.use)
@@ -131,7 +134,7 @@ struct ButtonbarDemo : public DemoBase {
     opt_parameter<length> force_item_height = {"force_item_height", 3_em};
 
     ButtonbarDemo()
-        : DemoBase{"Buttonbar", ImGuiWindowFlags_AlwaysUseWindowPadding}
+        : DemoBase{"Buttonbar", ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None}
     {
     }
 
@@ -205,7 +208,7 @@ struct ToolbarDemo : public DemoBase {
     bool toggleOn = false; // on/off state for toggle button
 
     ToolbarDemo()
-        : DemoBase{"Toolbar", ImGuiWindowFlags_NoScrollbar}
+        : DemoBase{"Toolbar", ImGuiChildFlags_None, ImGuiWindowFlags_NoScrollbar}
     {
     }
     ~ToolbarDemo() override {}
@@ -279,11 +282,12 @@ struct SplitterDemo : public DemoBase {
         Splitter::Band{{spring(50)}, {}, ImVec4{0.4f, 0.5f, 0.3f, 1.0f}},
     }};
     SplitterDemo()
-        : DemoBase{"Splitter", ImGuiWindowFlags_NoScrollbar}
+        : DemoBase{"Splitter", ImGuiChildFlags_None, ImGuiWindowFlags_NoScrollbar}
     {
         // add 2 more bands
-        splt.push_back({{spring(50)}, ImGuiWindowFlags_AlwaysUseWindowPadding});
-        splt.push_back({{5_em}, ImGuiWindowFlags_AlwaysUseWindowPadding});
+        splt.push_back(
+            {{spring(50)}, {ImGuiWindowFlags_None, ImGuiChildFlags_AlwaysUseWindowPadding}});
+        splt.push_back({{5_em}, {ImGuiWindowFlags_None, ImGuiChildFlags_AlwaysUseWindowPadding}});
         splt.back().Size.Minimum = 5_em;
     }
     ~SplitterDemo() override {}
@@ -344,7 +348,7 @@ struct SplitterDemo : public DemoBase {
 
 struct AcceleratorDemo : public DemoBase {
     AcceleratorDemo()
-        : DemoBase{"Accelerator", ImGuiWindowFlags_AlwaysUseWindowPadding}
+        : DemoBase{"Accelerator", ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None}
     {
     }
     ~AcceleratorDemo() override {}
@@ -376,7 +380,7 @@ struct ListBoxDemo_Simple : public DemoBase {
     parameter<bool> show_vec = {"show_vec", false};
 
     ListBoxDemo_Simple()
-        : DemoBase{"ListBox Simple", ImGuiWindowFlags_AlwaysUseWindowPadding}
+        : DemoBase{"ListBox Simple", ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None}
     {
     }
     ~ListBoxDemo_Simple() override {}
@@ -389,8 +393,9 @@ struct ListBoxDemo_Simple : public DemoBase {
         // --- content -----
 
         ImGui::BeginChild("scrollable", {0, 0},
-            ImGuiChildFlags_Border | ImGuiChildFlags_AlwaysUseWindowPadding,
-            ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NavFlattened);
+            ImGuiChildFlags_Border | ImGuiChildFlags_AlwaysUseWindowPadding |
+                ImGuiChildFlags_NavFlattened,
+            ImGuiWindowFlags_HorizontalScrollbar);
 
         if (show_vec.value) {
             ImPlus::Listbox::Strings("##vec-items", vec_items, vec_sel);
@@ -422,7 +427,7 @@ struct FlowDemo : public DemoBase {
     bool checkval = false;
 
     FlowDemo()
-        : DemoBase{"Flow", ImGuiWindowFlags_AlwaysUseWindowPadding}
+        : DemoBase{"Flow", ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None}
     {
     }
     ~FlowDemo() override {}
@@ -554,7 +559,7 @@ struct BannerDemo : public DemoBase {
     bool show_close_btn = true;
 
     BannerDemo()
-        : DemoBase{"Banner"}
+        : DemoBase{"Banner", ImGuiChildFlags_None, ImGuiWindowFlags_None}
     {
     }
     ~BannerDemo() override {}
@@ -580,7 +585,7 @@ struct BannerDemo : public DemoBase {
 
 struct PathboxDemo : public DemoBase {
     PathboxDemo()
-        : DemoBase{"Pathbox", ImGuiWindowFlags_AlwaysUseWindowPadding}
+        : DemoBase{"Pathbox", ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None}
     {
     }
     ~PathboxDemo() override {}
@@ -608,7 +613,7 @@ struct TypographyDemo : public DemoBase {
     ImVec2 sz;
 
     TypographyDemo()
-        : DemoBase{"Typography", ImGuiWindowFlags_AlwaysUseWindowPadding}
+        : DemoBase{"Typography", ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None}
     {
     }
     ~TypographyDemo() override {}
@@ -650,7 +655,7 @@ struct InputDemo : public DemoBase {
     parameter<float> balloon_tip_alignment = {"balloon_tip_alignment", 0.5f};
 
     InputDemo()
-        : DemoBase{"Input", ImGuiWindowFlags_AlwaysUseWindowPadding}
+        : DemoBase{"Input", ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None}
     {
     }
     ~InputDemo() override {}
@@ -743,7 +748,7 @@ struct DialogDemo : public DemoBase {
     std::string s1 = "";
 
     DialogDemo()
-        : DemoBase{"Dialogs", ImGuiWindowFlags_AlwaysUseWindowPadding}
+        : DemoBase{"Dialogs", ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None}
     {
     }
     ~DialogDemo() override {}
@@ -888,10 +893,11 @@ struct Window {
     ImPlus::Splitter splt{{
         // lhs band:
         Splitter::Band{{8_em},
-            ImGuiWindowFlags_AlwaysUseWindowPadding | ImGuiWindowFlags_NavFlattened,
+            {ImGuiWindowFlags_None,
+                ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_NavFlattened},
             ImPlus::Color::Func::Enhance(ImGuiCol_WindowBg, -0.05f)},
         // rhs band:
-        Splitter::Band{{spring(100.0f)}, ImGuiWindowFlags_NavFlattened},
+        Splitter::Band{{spring(100.0f)}, {ImGuiWindowFlags_None, ImGuiChildFlags_NavFlattened}},
     }};
 
     std::vector<std::unique_ptr<DemoBase>> demo_list;
@@ -930,9 +936,7 @@ struct Window {
                 [&] { // demo view panel
                     if (demo_index < demo_list.size()) {
                         auto* demo = demo_list[demo_index].get();
-                        ImGui::BeginChild("##content", {0, 0},
-                            ImGuiChildFlags_AlwaysUseWindowPadding,
-                            demo->flags | ImGuiWindowFlags_NavFlattened);
+                        ImGui::BeginChild("##content", {0, 0}, demo->cflags, demo->wflags);
                         demo->Display();
                         ImGui::EndChild();
                     }

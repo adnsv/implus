@@ -57,7 +57,7 @@ InteractColorCallback Colors_Frame_Background =
     ic_<ImGuiCol_FrameBg, ImGuiCol_FrameBgHovered, ImGuiCol_FrameBgActive>;
 
 InteractColorCallback Colors_Tab_Background =
-    ic_<ImGuiCol_Tab, ImGuiCol_TabHovered, ImGuiCol_TabActive>;
+    ic_<ImGuiCol_Tab, ImGuiCol_TabHovered, ImGuiCol_TabSelected>;
 
 InteractColorCallback Colors_Header_Background =
     ic_<ImGuiCol_Header, ImGuiCol_HeaderHovered, ImGuiCol_HeaderActive>;
@@ -81,7 +81,7 @@ InteractColorSetCallback ColorSets_Frame =
     ics_<ImGuiCol_Text, ImGuiCol_FrameBg, ImGuiCol_FrameBgHovered, ImGuiCol_FrameBgActive>;
 
 InteractColorSetCallback ColorSets_Tab =
-    ics_<ImGuiCol_Text, ImGuiCol_Tab, ImGuiCol_TabHovered, ImGuiCol_TabActive>;
+    ics_<ImGuiCol_Text, ImGuiCol_Tab, ImGuiCol_TabHovered, ImGuiCol_TabSelected>;
 
 InteractColorSetCallback ColorSets_MenuItem = [](InteractState const& state) -> ColorSet {
     return ColorSet{

@@ -6,9 +6,9 @@ namespace ImPlus {
 
 auto GetSelectionModifier() -> SelectionModifier
 {
-    if (ImGui::IsKeyDown(ImGuiKey_ModCtrl))
+    if (ImGui::IsKeyDown(ImGuiMod_Ctrl))
         return SelectionModifier::Toggle;
-    else if (ImGui::IsKeyDown(ImGuiKey_ModShift))
+    else if (ImGui::IsKeyDown(ImGuiMod_Shift))
         return SelectionModifier::Range;
     else
         return SelectionModifier::Regular;

@@ -53,10 +53,8 @@ auto BeginContentArea() -> bool
         return false;
     auto& info = display_stack.back();
     if (info.child_state == child_window_pending) {
-        auto area_flags = ImGuiWindowFlags_NavFlattened;
-
         ImGui::BeginChild("##.DLG.CHILD.AREA.", {-info.area_extra.x, -info.area_extra.y},
-            ImGuiChildFlags_None, area_flags);
+            ImGuiChildFlags_NavFlattened, ImGuiWindowFlags_None);
 
         info.child_state = child_window_started;
         return true;

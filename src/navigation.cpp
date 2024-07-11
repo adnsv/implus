@@ -16,8 +16,7 @@ auto ActivatePressed(bool extended) -> bool
         if (ImGui::IsKeyPressed(ImGuiKey_Space))
             return true;
         if (extended &&
-                ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter)) ||
-            ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_KeypadEnter)))
+            (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter)))
             return true;
     }
 
@@ -43,8 +42,8 @@ auto CancelPressed() -> bool
 
     if (g->IO.ConfigFlags && ImGuiConfigFlags_NavEnableGamepad) {
         // Cancel / Close / Exit
-        // - B (Xbox)         
-        // - A (Switch)   
+        // - B (Xbox)
+        // - A (Switch)
         // - Circle (PS)
         if (ImGui::IsKeyPressed(ImGuiKey_GamepadFaceRight))
             return true;

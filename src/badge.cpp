@@ -18,7 +18,7 @@ void Render(ImDrawList* dl, ImVec2 const& pos, std::string_view content, Options
 
     auto colors = opts.ColorSet.value_or(ImPlus::ColorSet{
         .Content = ImPlus::Color::FromStyle(ImGuiCol_Text),
-        .Background = ImPlus::Color::FromStyle(ImGuiCol_TabActive),
+        .Background = ImPlus::Color::FromStyle(ImGuiCol_TabSelected),
     });
 
     auto align = Style::Badge::Alignment();

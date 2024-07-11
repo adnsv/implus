@@ -92,32 +92,29 @@ enum KeyNameFlags {
     // use default names, Shortcut->"Super"
     KeyNameFlags_Default = 0,
 
-    // Shortcut -> "Cmd/⌘"(MacOS) / "Ctrl"(Others)
-    KeyNameFlags_ResolveShortcut = 1 << 0,
-
     // Use '/,-/.;=[\ instead of Names
-    KeyNameFlags_AllowKeySymbols = 1 << 1,
+    KeyNameFlags_AllowKeySymbols = 1 << 0,
 
     // allow unicode symbols depending on host platform (see below)
-    KeyNameFlags_AllowModSymbols = 1 << 2,
+    KeyNameFlags_AllowModSymbols = 1 << 1,
 
     // Control -> "Ctrl" / "^"
     // Shift -> "Shift" / "⇧"
     // Alt -> "Option" / "⌥"
     // Super -> "Cmd" / "⌘"
     // Shortcut -> "Cmd" / "⌘" (if ResolveShortcut)
-    KeyNameFlags_MacOS = 1 << 3,
+    KeyNameFlags_MacOS = 1 << 2,
 
     // Control -> "Ctrl"
     // Shift -> "Shift"
     // Alt -> "Option"
     // Super -> "Win" / "⊞"
     // Shortcut -> "Ctrl" (if ResolveShortcut)
-    KeyNameFlags_Windows = 1 << 4,
+    KeyNameFlags_Windows = 1 << 3,
 };
 
-constexpr auto ConvertSingleModFlagToKey(ImGuiKeyChord key, KeyNameFlags flags = KeyNameFlags{})
-    -> ImGuiKey
+constexpr auto ConvertSingleModFlagToKey(
+    ImGuiKeyChord key, KeyNameFlags flags = KeyNameFlags{}) -> ImGuiKey
 {
     switch (key) {
     case ImGuiMod_Ctrl: return ImGuiKey_ReservedForModCtrl;
@@ -135,8 +132,8 @@ constexpr auto IsNamedKey(ImGuiKey key) -> bool
 
 constexpr auto IsKeyNameChar(char c) -> bool { return c >= ' ' && c <= '~' && c != '+'; }
 
-constexpr auto KeyChordToChars(char* first, char* last, ImGuiKeyChord kc, KeyNameFlags flags)
-    -> std::to_chars_result
+constexpr auto KeyChordToChars(
+    char* first, char* last, ImGuiKeyChord kc, KeyNameFlags flags) -> std::to_chars_result
 {
     auto ret = std::to_chars_result{first, std::errc{}};
 
@@ -168,11 +165,6 @@ constexpr auto KeyChordToChars(char* first, char* last, ImGuiKeyChord kc, KeyNam
     auto const keysymbols = bool(flags & KeyNameFlags_AllowKeySymbols);
     auto const modsymbols = bool(flags & KeyNameFlags_AllowModSymbols);
 
-    if ((flags & KeyNameFlags_ResolveShortcut) && (m & ImGuiMod_Shortcut)) {
-        m = ImGuiKeyChord(m | (macos ? ImGuiMod_Super : ImGuiMod_Ctrl));
-        m = m & ~ImGuiMod_Shortcut;
-    }
-
     if (m) {
         if (m & ImGuiMod_Ctrl)
             write((macos & modsymbols) ? "^ " : "Ctrl+");
@@ -187,9 +179,6 @@ constexpr auto KeyChordToChars(char* first, char* last, ImGuiKeyChord kc, KeyNam
             write(macos     ? (modsymbols ? "⌘ " : "Cmd+")
                   : windows ? (modsymbols ? "⊞+" : "Win+")
                             : "Super+");
-
-        if (m & ImGuiMod_Shortcut)
-            write(macos ? "Shortcut " : "Shortcut+");
     }
 
     if (!IsNamedKey(k)) {
@@ -225,21 +214,19 @@ inline auto KeyChordToString(ImGuiKeyChord kc, KeyNameFlags flags) -> std::strin
 constexpr auto DefaultKeyNameFlags() -> KeyNameFlags
 {
 #if defined(IMPLUS_KEYNAMES_MACOS)
-    return KeyNameFlags(KeyNameFlags_ResolveShortcut | KeyNameFlags_AllowKeySymbols |
-                        KeyNameFlags_AllowModSymbols | KeyNameFlags_MacOS);
+    return KeyNameFlags(
+        KeyNameFlags_AllowKeySymbols | KeyNameFlags_AllowModSymbols | KeyNameFlags_MacOS);
 #elif defined(IMPLUS_KEYNAMES_WINDOWS)
-    return KeyNameFlags(
-        KeyNameFlags_ResolveShortcut | KeyNameFlags_AllowKeySymbols | KeyNameFlags_Windows);
+    return KeyNameFlags(KeyNameFlags_AllowKeySymbols | KeyNameFlags_Windows);
 #elif defined(IMPLUS_KEYNAMES_LINUX)
-    return KeyNameFlags(KeyNameFlags_ResolveShortcut | KeyNameFlags_AllowKeySymbols);
+    return KeyNameFlags(KeyNameFlags_AllowKeySymbols);
 #elif defined(__APPLE__)
-    return KeyNameFlags(KeyNameFlags_ResolveShortcut | KeyNameFlags_AllowKeySymbols |
-                        KeyNameFlags_AllowModSymbols | KeyNameFlags_MacOS);
-#elif defined(_WIN32)
     return KeyNameFlags(
-        KeyNameFlags_ResolveShortcut | KeyNameFlags_AllowKeySymbols | KeyNameFlags_Windows);
+        KeyNameFlags_AllowKeySymbols | KeyNameFlags_AllowModSymbols | KeyNameFlags_MacOS);
+#elif defined(_WIN32)
+    return KeyNameFlags(KeyNameFlags_AllowKeySymbols | KeyNameFlags_Windows);
 #else
-    return KeyNameFlags(KeyNameFlags_ResolveShortcut | KeyNameFlags_AllowKeySymbols);
+    return KeyNameFlags(KeyNameFlags_AllowKeySymbols);
 #endif
 }
 
@@ -275,16 +262,14 @@ constexpr auto KeyModFromStr(std::string_view s, ImGuiKeyChord& m) -> bool
     else if (s == "Super" || s == "Cmd" || s == "Command" || s == "Win" || s == "Windows" ||
              s == "⊞")
         m = ImGuiMod_Super;
-    else if (s == "Shortcut")
-        m = ImGuiMod_Shortcut;
     else
         return false;
 
     return true;
 }
 
-constexpr auto KeyModFromChars(const char* first, const char* last, ImGuiKeyChord& m)
-    -> std::from_chars_result
+constexpr auto KeyModFromChars(
+    const char* first, const char* last, ImGuiKeyChord& m) -> std::from_chars_result
 {
     auto p = first;
     while (p != last && IsKeyNameChar(*p))
@@ -296,8 +281,8 @@ constexpr auto KeyModFromChars(const char* first, const char* last, ImGuiKeyChor
         return std::from_chars_result{first, std::errc::invalid_argument};
 }
 
-constexpr auto KeyFromChars(const char* first, const char* last, ImGuiKey& k)
-    -> std::from_chars_result
+constexpr auto KeyFromChars(
+    const char* first, const char* last, ImGuiKey& k) -> std::from_chars_result
 {
     auto p = first;
     while (p != last && IsKeyNameChar(*p))
@@ -309,8 +294,8 @@ constexpr auto KeyFromChars(const char* first, const char* last, ImGuiKey& k)
         return std::from_chars_result{first, std::errc::invalid_argument};
 }
 
-constexpr auto KeyChordFromChars(const char* first, const char* last, ImGuiKeyChord& kc)
-    -> std::from_chars_result
+constexpr auto KeyChordFromChars(
+    const char* first, const char* last, ImGuiKeyChord& kc) -> std::from_chars_result
 {
     auto curr = first;
     kc = ImGuiKeyChord(0);
