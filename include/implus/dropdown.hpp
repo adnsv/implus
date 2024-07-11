@@ -11,10 +11,13 @@ constexpr auto DefaultDropdownPlacement = Placement::Options{
     .Alignment = 1.0f,
 };
 
-// BeginDropDownPopup is simplified version of ImGui::BeginComboPopup in imgui_widgets.cpp that is
+// BeginDropDownPopup is a modified version of ImGui::BeginComboPopup in imgui_widgets.cpp that is
 // tailored for showing dropdown popups
-//
 auto BeginDropDownPopup(ImID id, ImVec2 const& bb_min, ImVec2 const& bb_max,
     Placement::Options const& placement = DefaultDropdownPlacement) -> bool;
+
+// BeginDropDownPopup - a simplified overloaded version that opens a dropdown popup over the last item.
+auto BeginDropDownPopup(
+    ImID id, Placement::Options const& placement = DefaultDropdownPlacement) -> bool;
 
 } // namespace ImPlus

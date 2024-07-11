@@ -40,4 +40,10 @@ auto BeginDropDownPopup(ImID id, ImVec2 const& bb_min, ImVec2 const& bb_max,
     return ret;
 }
 
+auto BeginDropDownPopup(ImID id, Placement::Options const& placement) -> bool
+{
+    auto const bb = ImGui::GetCurrentContext()->LastItemData.Rect;
+    return BeginDropDownPopup(id, bb.Min, bb.Max, placement);
+}
+
 } // namespace ImPlus
