@@ -161,7 +161,7 @@ auto Flow::CollapsingHeader(ImID id, std::string_view caption, ImGuiTreeNodeFlag
         ImVec2(window->DC.CursorPos.x + text_offset_x, window->DC.CursorPos.y + text_offset_y);
 
     auto const expanded =
-        ImGui::TreeNodeBehavior(id, flags, caption.data(), caption.data() + caption.size());
+        ImGui::TreeNodeBehavior(id, id, flags, caption.data(), caption.data() + caption.size());
 
     last_collapsing_header_frame.Min = frame_bb.Min;
     last_collapsing_header_frame.Max = frame_bb.Max;
