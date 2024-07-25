@@ -102,7 +102,7 @@ void DoneContentArea()
 
     if (want_buttons) {
         auto pos = ImGui::GetCursorScreenPos();
-        auto br = ImGui::GetContentRegionMaxAbs();
+        auto br = pos + ImGui::GetContentRegionAvail();
         if (vertical) {
             pos.x = pos.x - ImGui::GetStyle().ItemSpacing.x + info.button_area_spacing;
             pos.x = std::max(pos.x, br.x - info.button_size.x);
