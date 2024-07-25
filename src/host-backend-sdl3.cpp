@@ -82,7 +82,7 @@ inline auto window_from_native(SDL_Window* native) -> Window*
         return nullptr;
 
     return reinterpret_cast<Window*>(
-        SDL_GetProperty(SDL_GetWindowProperties(native), "implus-wnd", nullptr));
+        SDL_GetPointerProperty(SDL_GetWindowProperties(native), "implus-wnd", nullptr));
 }
 inline auto window_from_id(SDL_WindowID id) -> Window*
 {
@@ -91,7 +91,7 @@ inline auto window_from_id(SDL_WindowID id) -> Window*
         return nullptr;
 
     return reinterpret_cast<Window*>(
-        SDL_GetProperty(SDL_GetWindowProperties(sdlw), "implus-wnd", nullptr));
+        SDL_GetPointerProperty(SDL_GetWindowProperties(sdlw), "implus-wnd", nullptr));
 }
 
 static int event_watcher(void* data, SDL_Event* event)
@@ -185,7 +185,7 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
-    SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
+    SDL_SetHint(SDL_HINT_IME_IMPLEMENTED_UI, "1");
 
     auto window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_HIGH_PIXEL_DENSITY;
 
@@ -237,7 +237,7 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
     SDL_GL_MakeCurrent(native, gl_context_);
     if (!glad_inited) {
         if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
-            SDL_GL_DeleteContext(gl_context_);
+            SDL_GL_DestroyContext(gl_context_);
             SDL_DestroyWindow(native);
             handle_ = nullptr;
             std::fputs("GLAD initialization failure\n", stderr);
@@ -248,7 +248,7 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
 
     SDL_GL_SetSwapInterval(1);
 
-    SDL_SetProperty(SDL_GetWindowProperties(native), "implus-wnd", this);
+    SDL_SetPointerProperty(SDL_GetWindowProperties(native), "implus-wnd", this);
 
     SDL_AddEventWatch(event_watcher, nullptr);
 
@@ -279,7 +279,7 @@ Window::~Window()
     if (context_)
         ImGui::DestroyContext(context_);
     if (gl_context_)
-        SDL_GL_DeleteContext(gl_context_);
+        SDL_GL_DestroyContext(gl_context_);
     if (handle_)
         SDL_DestroyWindow(native);
 }

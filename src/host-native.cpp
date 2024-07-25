@@ -97,22 +97,22 @@ auto ImPlus::Host::GetBackendNativeHandle(ImPlus::Host::Window const& wnd) -> Na
     auto props = SDL_GetWindowProperties(sw);
 
 #if defined(SDL_PLATFORM_WIN32)
-    auto hwnd = SDL_GetProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
+    auto hwnd = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
     return {hwnd, NativeHandleType::WIN32_HWND};
 
 #elif defined(SDL_PLATFORM_MACOS)
-    // auto p = (__bridge NSWindow *)SDL_GetProperty(props, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER,
+    // auto p = (__bridge NSWindow *)SDL_GetPointerProperty(props, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER,
     // NULL); return {p->id, NativeHandleType::COCOA_ID}
     return {};
 
 #elif defined(SDL_PLATFORM_ANDROID)
-    auto w = SDL_GetProperty(props, SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER, NULL);
+    auto w = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER, NULL);
     return {w, NativeHandleType::ANDROID_WINDOW};
 
 #elif defined(SDL_PLATFORM_LINUX)
     auto drv = SDL_GetCurrentVideoDriver();
     if (SDL_strcmp(drv, "x11") == 0) {
-        auto xdisp = SDL_GetProperty(props, SDL_PROP_WINDOW_X11_DISPLAY_POINTER, NULL);
+        auto xdisp = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_X11_DISPLAY_POINTER, NULL);
         auto xwindow = SDL_GetNumberProperty(props, SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0);
         if (xdisp && xwindow) {
             return {reinterpret_cast<void*>(xwindow), NativeHandleType::X11_WINDOW_XID};
@@ -122,9 +122,9 @@ auto ImPlus::Host::GetBackendNativeHandle(ImPlus::Host::Window const& wnd) -> Na
         }
     }
     else if (SDL_strcmp(drv, "wayland") == 0) {
-        auto disp_ptr = (struct wl_display*)SDL_GetProperty(
+        auto disp_ptr = (struct wl_display*)SDL_GetPointerProperty(
             props, SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER, NULL);
-        auto surface_ptr = (struct wl_surface*)SDL_GetProperty(
+        auto surface_ptr = (struct wl_surface*)SDL_GetPointerProperty(
             props, SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, NULL);
         if (disp_ptr && surface_ptr) {
             return {reinterpret_cast<void*>(surface_ptr), NativeHandleType::WAYLAND_SURFACE};
@@ -139,14 +139,14 @@ auto ImPlus::Host::GetBackendNativeHandle(ImPlus::Host::Window const& wnd) -> Na
 
 #endif
 
-    SDL_GetProperty(props, SDL_PROP_WINDOW_X11_WINDOW_NUMBER, nullptr);
+    SDL_GetPointerProperty(props, SDL_PROP_WINDOW_X11_WINDOW_NUMBER, nullptr);
     // todo: implement
 
 #if defined(__WIN32__)
-    auto w = SDL_GetProperty(SDL_GetWindowProperties(sw), "SDL.window.win32.hwnd", NULL);
+    auto w = SDL_GetPointerProperty(SDL_GetWindowProperties(sw), "SDL.window.win32.hwnd", NULL);
     return {w, NativeHandleType::WIN32_HWND};
 #elif defined(__MACOS__)
-    auto nswindow = SDL_GetProperty(SDL_GetWindowProperties(sw), "SDL.window.cocoa.window", NULL);
+    auto nswindow = SDL_GetPointerProperty(SDL_GetWindowProperties(sw), "SDL.window.cocoa.window", NULL);
     return {w, NativeHandleType::COCOA_ID};
 #endif
 
