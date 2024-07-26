@@ -129,9 +129,9 @@ auto internal::GetButtonSize() -> ImVec2
 // IsCancelShortcut detects shortcut chords (ImGuiKey_Escape | ImGuiKey_NavGamepadCancel).
 auto IsCancelShortcut(ImGuiID owner_id) -> bool
 {
-    auto& io = GImGui->IO;
-    const bool allow_gamepad = (io.ConfigFlags & ImGuiConfigFlags_NavEnableGamepad) != 0 &&
-                               (io.BackendFlags & ImGuiBackendFlags_HasGamepad) != 0;
+    auto& g = *ImGui::GetCurrentContext();
+    const bool allow_gamepad = (g.IO.ConfigFlags & ImGuiConfigFlags_NavEnableGamepad) != 0 &&
+                               (g.IO.BackendFlags & ImGuiBackendFlags_HasGamepad) != 0;
 
     return ImGui::Shortcut(ImGuiKey_Escape, ImGuiInputFlags_None, owner_id) ||
            (allow_gamepad &&
@@ -143,9 +143,9 @@ auto IsRejectActionKeyPressed() -> bool
     if (!ImGui::IsWindowFocused(
             ImGuiFocusedFlags_RootAndChildWindows | ImGuiFocusedFlags_NoPopupHierarchy))
         return false;
-    auto& io = GImGui->IO;
-    const bool allow_gamepad = (io.ConfigFlags & ImGuiConfigFlags_NavEnableGamepad) != 0 &&
-                               (io.BackendFlags & ImGuiBackendFlags_HasGamepad) != 0;
+    auto& g = *ImGui::GetCurrentContext();
+    const bool allow_gamepad = (g.IO.ConfigFlags & ImGuiConfigFlags_NavEnableGamepad) != 0 &&
+                               (g.IO.BackendFlags & ImGuiBackendFlags_HasGamepad) != 0;
 
     return ImGui::IsKeyPressed(ImGuiKey_Escape) ||
            (allow_gamepad && ImGui::IsKeyPressed(ImGuiKey_NavGamepadCancel));
