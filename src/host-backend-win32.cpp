@@ -559,6 +559,14 @@ auto Window::Locate() const -> Location
     return {regular_bounds.pos, regular_bounds.size, maximized, fullscreen};
 }
 
+auto Window::IsMinimized() const -> bool {
+    auto hwnd = native_wnd(this->handle_);
+    if (!::IsWindow(hwnd))
+        return false;
+    auto const sty = ::GetWindowLongW(hwnd, GWL_STYLE);
+    return (sty & WS_MINIMIZE) != 0;
+}
+
 void Window::perform_locate(Location const& loc, bool constrain_to_monitor)
 {
     auto hwnd = native_wnd(this->handle_);

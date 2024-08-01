@@ -112,6 +112,7 @@ struct Window {
     auto IsFullscreen() const -> bool { return fullscreen; }
     void SetFullscreen(bool on = true);
     void ToggleFullscreen() { SetFullscreen(!fullscreen); }
+    auto IsMinimized() const -> bool;
     void BringToFront();
 
     void SetTitle(char const* s);

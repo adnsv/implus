@@ -1,7 +1,9 @@
 #include <imgui_internal.h>
 
-#include "implus/application.hpp"
-#include "implus/dlg.hpp"
+#include <chrono>
+#include <implus/application.hpp>
+#include <implus/dlg.hpp>
+#include <thread>
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -75,6 +77,9 @@ void Base::Run(std::function<void()> on_render)
         }
 
         render_frame(true);
+
+        if (w.IsMinimized())
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 #endif
 }
@@ -85,14 +90,14 @@ void emscripten_loop(void* args_ptr)
     auto& args = *reinterpret_cast<loop_args*>(args_ptr);
 
     if (ImPlus::Visuals::SetupFrame(args.w.ContentScale())) {
-            // SetupFrame returns true if one of the following has changed:
-            // - Visuals::Zoom
-            // - window.Scale
-            // - theme
-            //
-            // If you have cached resources that depend on these properties
-            // update or invalidate those here
-        }
+        // SetupFrame returns true if one of the following has changed:
+        // - Visuals::Zoom
+        // - window.Scale
+        // - theme
+        //
+        // If you have cached resources that depend on these properties
+        // update or invalidate those here
+    }
 
     args.w.NewFrame(true);
 

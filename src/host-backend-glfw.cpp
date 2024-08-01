@@ -320,6 +320,11 @@ auto Window::Locate() const -> Location
     return {regular_bounds.pos, regular_bounds.size, maximized, fullscreen};
 }
 
+auto Window::IsMinimized() const -> bool {
+    auto w = native_wnd(handle_);
+    return bool(glfwGetWindowAttrib(w, GLFW_ICONIFIED));
+}
+
 auto overlap(Window::Bounds const& a, Window::Bounds const& b) -> int
 {
     auto xl = std::max(a.min().x, b.min().x);
