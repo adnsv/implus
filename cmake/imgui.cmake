@@ -30,13 +30,13 @@ if(WIN32)
     set(IMGUI_HOST_IMPL "WIN32" CACHE STRING "ImGui host implementation")
     set_property(CACHE IMGUI_HOST_IMPL PROPERTY STRINGS "WIN32" "GLFW" "SDL2" "SDL3")
     if(IMGUI_HOST_IMPL STREQUAL "WIN32")
-        set(IMGUI_RENDER_IMPL "DX11")
+        set(IMGUI_DEFAULT_RENDER_IMPL "DX11")
     elseif(IMGUI_HOST_IMPL STREQUAL "GLFW")
-        set(IMGUI_RENDER_IMPL "GL3")
+        set(IMGUI_DEFAULT_RENDER_IMPL "GL3")
     elseif(IMGUI_HOST_IMPL STREQUAL "SDL2")
-        set(IMGUI_RENDER_IMPL "GL3")
+        set(IMGUI_DEFAULT_RENDER_IMPL "GL3")
     elseif(IMGUI_HOST_IMPL STREQUAL "SDL3")
-        set(IMGUI_RENDER_IMPL "GL3")
+        set(IMGUI_DEFAULT_RENDER_IMPL "GL3")
     else()
         message(FATAL_ERROR "Unsupported ImGui host implementation")
     endif()
@@ -44,15 +44,19 @@ if(WIN32)
 elseif(ANDROID)
     set(IMGUI_HOST_IMPL "SDL2" CACHE STRING "ImGui host implementation")
     set_property(CACHE IMGUI_HOST_IMPL PROPERTY STRINGS "SDL2" "SDL3")
-    set(IMGUI_RENDER_IMPL "GL3")
+    
+    set(IMGUI_DEFAULT_RENDER_IMPL "GL3")
 
 else()
     # choose between GLFW or SDL2 or SDL3, default to GLFW
     set(IMGUI_HOST_IMPL "GLFW" CACHE STRING "ImGui host implementation")
     set_property(CACHE IMGUI_HOST_IMPL PROPERTY STRINGS "GLFW" "SDL2" "SDL3")
-    set(IMGUI_RENDER_IMPL "GL3")
+    set(IMGUI_DEFAULT_RENDER_IMPL "GL3")
 
 endif()
+
+set(IMGUI_RENDER_IMPL "${IMGUI_DEFAULT_RENDER_IMPL}" CACHE STRING "ImGui render implementation")
+set_property(CACHE IMGUI_RENDER_IMPL PROPERTY STRINGS "DX11" "GL2" "GL3" "VULKAN")
 
 if((IMGUI_RENDER_IMPL STREQUAL "GL2") OR (IMGUI_RENDER_IMPL STREQUAL "GL3"))
     set(IMGUI_GL_LOADER_IMPL "GLAD" CACHE STRING "ImGui OpenGL loader implementation")
@@ -104,11 +108,14 @@ elseif(IMGUI_RENDER_IMPL STREQUAL "GL3")
     target_sources(imgui PUBLIC "${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp")
     set(IMGUI_USE_GL_LOADER ON)
 
-    elseif(IMGUI_RENDER_IMPL STREQUAL "DX11")
+elseif(IMGUI_RENDER_IMPL STREQUAL "VULKAN")
+    target_sources(imgui PUBLIC "${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp")
+
+elseif(IMGUI_RENDER_IMPL STREQUAL "DX11")
     target_sources(imgui PUBLIC "${IMGUI_DIR}/backends/imgui_impl_dx11.cpp")
     target_link_libraries(imgui PUBLIC "d3d11" "d3dcompiler" "dxgi" "shcore" "xinput")
-    
-    elseif(IMGUI_RENDER_IMPL STREQUAL "DX12")
+
+elseif(IMGUI_RENDER_IMPL STREQUAL "DX12")
     target_sources(imgui PUBLIC "${IMGUI_DIR}/backends/imgui_impl_dx12.cpp")
     target_link_libraries(imgui PUBLIC "d3d12" "d3dcompiler" "dxgi" "shcore" "xinput")
     
@@ -156,4 +163,10 @@ if(IMGUI_RENDER_IMPL STREQUAL "GL3")
         )
     endif()
 
+endif()
+
+if(IMGUI_RENDER_IMPL STREQUAL "VULKAN")
+    find_package(Vulkan REQUIRED FATAL_ERROR)
+    message(STATUS "ImGui -- Using Vulkan renderer")
+    target_link_libraries(imgui PUBLIC "Vulkan::Vulkan")
 endif()

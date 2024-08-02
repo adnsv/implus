@@ -127,9 +127,18 @@ if(IMPLUS_HOST_IMPL STREQUAL "GLFW")
         message(FATAL_ERROR "GLFW implementation is missing or unknown")
     endif()
 
+    if(IMPLUS_RENDER_IMPL STREQUAL "VULKAN")
+        target_sources(implus PUBLIC "src/render-vulkan.cpp")
+    endif()
+
+
 elseif(IMPLUS_HOST_IMPL STREQUAL "SDL2")
     target_sources(implus PUBLIC "src/host-backend-sdl2.cpp")
     target_link_libraries(implus PUBLIC "SDL2::SDL2")
+
+    if(IMPLUS_RENDER_IMPL STREQUAL "VULKAN")
+        target_sources(implus PUBLIC "src/render-vulkan.cpp")
+    endif()
 
 elseif(IMPLUS_HOST_IMPL STREQUAL "SDL3")
     target_sources(implus PUBLIC "src/host-backend-sdl3.cpp")

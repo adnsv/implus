@@ -14,7 +14,7 @@
 
 #include <backends/imgui_impl_sdl2.h>
 
-#ifdef IMPLUS_RENDER_GL3
+#if defined(IMPLUS_RENDER_GL3)
 #include <backends/imgui_impl_opengl3.h>
 #include <glad/glad.h>
 #if defined(__APPLE__)
@@ -35,6 +35,14 @@ const char* glsl_version = "#version 130";
 #endif
 static auto glad_inited = false;
 
+#elif defined(IMPLUS_RENDER_VULKAN)
+
+#include "render-vulkan.hpp"
+
+#else
+
+#error Undefined IMPLUS_RENDERER_XXXX
+
 #endif
 
 #include <algorithm>
@@ -43,28 +51,19 @@ static auto glad_inited = false;
 namespace ImPlus::Host {
 
 static bool sdl_inited = false;
+
+#if defined(IMPLUS_RENDER_GL3)
 static SDL_GLContext gl_context_ = nullptr;
+#elif defined(IMPLUS_RENDERER_VULKAN)
+
+#endif
+
 extern Window* main_window_;
 extern std::size_t window_counter_;
 
 using SDL_WindowID = Uint32;
 using SDL_DisplayID = int;
 
-// static void handleRefreshCallback(GLFWwindow* native)
-//{
-//     if (auto w = window_from_native(native))
-//         if (w->OnRefresh && AllowRefresh())
-//             w->OnRefresh();
-// }
-//
-// static void handleFramebufferSizeCallback(
-//     GLFWwindow* native, int width, int height)
-//{
-//     if (auto w = window_from_native(native))
-//         if (w->OnFramebufferSize)
-//             w->OnFramebufferSize({width, height});
-// }
-//
 void notifyMove(Window& w, Window::Pos const& xy)
 {
     if (!w.suspendNotifications)
@@ -126,7 +125,7 @@ static int event_watcher(void* data, SDL_Event* event)
     } break;
 
     case SDL_APP_WILLENTERBACKGROUND: {
-         if (OnEnterBackground)
+        if (OnEnterBackground)
             OnEnterBackground();
     } break;
 
@@ -161,6 +160,8 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
         static auto _ = atexit{};
     }
 
+#if defined(IMPLUS_RENDER_GL3)
+
 #if defined(__APPLE__)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -174,8 +175,8 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
 
 #elif defined(__EMSCRIPTEN__)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION,2);
-    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL,1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
 
 #elif defined(__linux__)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
@@ -194,9 +195,16 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
-    SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
-
     auto window_flags = SDL_WindowFlags(SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
+
+#elif defined(IMPLUS_RENDER_VULKAN)
+
+    auto window_flags = SDL_WindowFlags(SDL_WINDOW_VULKAN | SDL_WINDOW_ALLOW_HIGHDPI);
+    Renderer::SetupHints();
+
+#endif
+
+    SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
 
 #if !defined(__EMSCRIPTEN__) && !defined(__ANDROID__)
     window_flags = SDL_WindowFlags(window_flags | SDL_WINDOW_HIDDEN);
@@ -212,6 +220,7 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
 
     auto native = SDL_CreateWindow(
         title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 256, 256, window_flags);
+    SDL_SetWindowData(native, "implus-wnd", this);
 
     auto b = PrimaryMonitorWorkArea();
     b.inflate(-b.size.w / 10, -b.size.h / 10);
@@ -243,6 +252,7 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
     regular_bounds.pos = {x, y};
     regular_bounds.size = {w, h};
 
+#if defined(IMPLUS_RENDER_GL3)
     gl_context_ = SDL_GL_CreateContext(native);
     SDL_GL_MakeCurrent(native, gl_context_);
     if (!glad_inited) {
@@ -258,7 +268,11 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
 
     SDL_GL_SetSwapInterval(1);
 
-    SDL_SetWindowData(native, "implus-wnd", this);
+#elif defined(IMPLUS_RENDER_VULKAN)
+    Renderer::SetupInstance(*this);
+    Renderer::SetupWindow(*this);
+
+#endif
 
     SDL_AddEventWatch(event_watcher, nullptr);
 
@@ -283,13 +297,22 @@ Window::~Window()
 
     auto native = native_wnd(handle_);
     if (window_counter_ == 0) {
+#if defined(IMPLUS_RENDER_GL3)
         ImGui_ImplOpenGL3_Shutdown();
+#elif defined(IMPLUS_RENDER_VULKAN)
+        auto err = vkDeviceWaitIdle(g_Device);
+        check_vk_result(err);
+
+        ImGui_ImplVulkan_Shutdown();
+#endif
         ImGui_ImplSDL2_Shutdown();
     }
     if (context_)
         ImGui::DestroyContext(context_);
+
     if (gl_context_)
         SDL_GL_DeleteContext(gl_context_);
+
     if (handle_)
         SDL_DestroyWindow(native);
 }
@@ -593,7 +616,7 @@ void Window::EnableDropFiles(bool allow)
 {
     auto _handle = native_wnd(this->handle_);
     SDL_EventState(SDL_DROPFILE, allow ? SDL_ENABLE : SDL_DISABLE);
-    //SDL_ToggleDragAndDropSupport();
+    // SDL_ToggleDragAndDropSupport();
 }
 
 auto ConstrainToMonitor(Window::Bounds const& b) -> Window::Bounds
@@ -624,11 +647,16 @@ auto PrimaryMonitorWorkArea() -> Window::Bounds
 
 void InvalidateDeviceObjects()
 {
+#if defined(IMPLUS_RENDER_GL3)
     // something is wrong with resource re-creation
     // for now, we only force font re-creation as a temporary workaround
     // ImGui_ImplOpenGL3_DestroyDeviceObjects();
     ImGui_ImplOpenGL3_DestroyFontsTexture();
     ImGui_ImplOpenGL3_CreateFontsTexture();
+#elif defined(IMPLUS_RENDER_VULKAN)
+    ImGui_ImplVulkan_DestroyFontsTexture();
+    ImGui_ImplVulkan_CreateFontsTexture();
+#endif
 }
 
 } // namespace ImPlus::Host
