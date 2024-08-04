@@ -5,6 +5,7 @@
 #include "implus/pathbox.hpp"
 #include "internal/draw-utils.hpp"
 
+#include <cstdint>
 #include <cmath>
 #include <cstdint>
 #include <vector>
