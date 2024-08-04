@@ -1,5 +1,6 @@
 #pragma once
 
+#include <implus/icon.hpp>
 #include <implus/id.hpp>
 #include <implus/overridable.hpp>
 
