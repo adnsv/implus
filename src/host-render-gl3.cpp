@@ -187,7 +187,7 @@ void InvalidateDeviceObjects()
     ImGui_ImplOpenGL3_CreateFontsTexture();
 }
 
-void NewFrame() { ImGui_ImplOpenGL3_NewFrame(); }
+void NewFrame(ImPlus::Host::Window&) { ImGui_ImplOpenGL3_NewFrame(); }
 
 void PrepareViewport(ImPlus::Host::Window& wnd)
 {
