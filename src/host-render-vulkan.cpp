@@ -1,4 +1,6 @@
-#include "render-vulkan.hpp"
+#include "host-render.hpp"
+#include <stdexcept>
+#include <string>
 
 #if defined(IMPLUS_HOST_GLFW)
 #include <backends/imgui_impl_glfw.h>
@@ -52,9 +54,12 @@ static void check_vk_result(VkResult err)
 {
     if (err == 0)
         return;
-    fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+    auto msg = std::string{"[vulkan] Error: VkResult = "};
+    msg += std::to_string(err);
     if (err < 0)
-        abort();
+        throw std::runtime_error(msg);
+    else
+        std::fprintf(stderr, "%s\n", msg.c_str());
 }
 
 #ifdef APP_USE_VULKAN_DEBUG_REPORT
@@ -68,7 +73,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_report(VkDebugReportFlagsEXT flags,
     (void)messageCode;
     (void)pUserData;
     (void)pLayerPrefix; // Unused arguments
-    fprintf(
+    std::fprintf(
         stderr, "[vulkan] Debug report from ObjectType: %i\nMessage: %s\n\n", objectType, pMessage);
     return VK_FALSE;
 }
@@ -249,8 +254,6 @@ static void SetupVulkan(ImVector<const char*> instance_extensions)
     }
 }
 
-// All the ImGui_ImplVulkanH_XXX structures/functions are optional helpers used by the demo.
-// Your real engine/app may not use them.
 static void SetupVulkanWindow(
     ImGui_ImplVulkanH_Window* wd, VkSurfaceKHR surface, int width, int height)
 {
@@ -421,11 +424,19 @@ void SetupInstance(ImPlus::Host::Window& wnd)
     const char** glfw_extensions = glfwGetRequiredInstanceExtensions(&extensions_count);
     for (uint32_t i = 0; i < extensions_count; i++)
         extensions.push_back(glfw_extensions[i]);
-#elif defined(IMPLUS_HOST_SDL2) || defined(IMPLUS_HOST_SDL3)
+#elif defined(IMPLUS_HOST_SDL2)
     auto window = static_cast<SDL_Window*>(wnd.Handle());
     SDL_Vulkan_GetInstanceExtensions(window, &extensions_count, nullptr);
     extensions.resize(extensions_count);
     SDL_Vulkan_GetInstanceExtensions(window, &extensions_count, extensions.Data);
+#elif defined(IMPLUS_HOST_SDL3)
+    auto window = static_cast<SDL_Window*>(wnd.Handle());
+    auto p = SDL_Vulkan_GetInstanceExtensions(&extensions_count);
+    extensions.reserve(extensions_count);
+    for (uint32_t i = 0; i < extensions_count; ++i) {
+        extensions.push_back(*p);
+        ++p;
+    }
 #endif
 
     SetupVulkan(extensions);
@@ -445,11 +456,12 @@ void SetupWindow(ImPlus::Host::Window& wnd)
 #if defined(IMPLUS_HOST_GLFW)
     err = glfwCreateWindowSurface(g_Instance, window, g_Allocator, &surface);
     check_vk_result(err);
-#elif defined(IMPLUS_HOST_SDL2) || defined(IMPLUS_HOST_SDL3)
-    if (SDL_Vulkan_CreateSurface(window, g_Instance, &surface) == 0) {
-        printf("Failed to create Vulkan surface.\n");
-        abort();
-    }
+#elif defined(IMPLUS_HOST_SDL2) 
+    if (SDL_Vulkan_CreateSurface(window, g_Instance, &surface) != SDL_TRUE)
+        throw std::runtime_error("Failed to create Vulkan surface.");
+#elif defined(IMPLUS_HOST_SDL3)
+    if (SDL_Vulkan_CreateSurface(window, g_Instance, g_Allocator, &surface) != 0)
+        throw std::runtime_error("Failed to create Vulkan surface.");
 #endif
 
     // Create Framebuffers
@@ -492,6 +504,78 @@ void SetupImplementation(ImPlus::Host::Window& wnd)
     init_info.Allocator = g_Allocator;
     init_info.CheckVkResultFn = check_vk_result;
     ImGui_ImplVulkan_Init(&init_info);
+}
+
+void ShutdownImplementation()
+{
+    auto err = vkDeviceWaitIdle(g_Device);
+    check_vk_result(err);
+    ImGui_ImplVulkan_Shutdown();
+}
+
+void ShutdownInstance()
+{
+    CleanupVulkanWindow();
+    CleanupVulkan();
+}
+
+void InvalidateDeviceObjects()
+{
+    ImGui_ImplVulkan_DestroyFontsTexture();
+    ImGui_ImplVulkan_CreateFontsTexture();
+}
+
+void NewFrame(ImPlus::Host::Window& wnd)
+{
+#if defined(IMPLUS_HOST_GLFW)
+    auto window = static_cast<GLFWWindow*>(wnd.Handle());
+#elif defined(IMPLUS_HOST_SDL2) || defined(IMPLUS_HOST_SDL3)
+    auto window = static_cast<SDL_Window*>(wnd.Handle());
+#endif
+
+    auto const fbsize = wnd.FramebufferSize();
+    int fb_width, fb_height;
+    SDL_GetWindowSize(window, &fb_width, &fb_height);
+    if (fb_width > 0 && fb_height > 0 &&
+        (g_SwapChainRebuild || g_MainWindowData.Width != fb_width ||
+            g_MainWindowData.Height != fb_height)) {
+        ImGui_ImplVulkan_SetMinImageCount(g_MinImageCount);
+        ImGui_ImplVulkanH_CreateOrResizeWindow(g_Instance, g_PhysicalDevice, g_Device,
+            &g_MainWindowData, g_QueueFamily, g_Allocator, fb_width, fb_height, g_MinImageCount);
+        g_MainWindowData.FrameIndex = 0;
+        g_SwapChainRebuild = false;
+    }
+
+    // Start the Dear ImGui frame
+    ImGui_ImplVulkan_NewFrame();
+}
+
+void PrepareViewport(ImPlus::Host::Window& wnd)
+{
+    auto* wd = &g_MainWindowData;
+    wd->ClearValue.color.float32[0] = wnd.Background.x * wnd.Background.w;
+    wd->ClearValue.color.float32[1] = wnd.Background.y * wnd.Background.w;
+    wd->ClearValue.color.float32[2] = wnd.Background.z * wnd.Background.w;
+    wd->ClearValue.color.float32[3] = wnd.Background.w;
+}
+
+void RenderDrawData()
+{
+    auto* wd = &g_MainWindowData;
+    ImDrawData* draw_data = ImGui::GetDrawData();
+    const bool is_minimized =
+        (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
+    if (!is_minimized)
+        FrameRender(wd, draw_data);
+}
+
+void SwapBuffers(ImPlus::Host::Window&)
+{
+    auto* wd = &g_MainWindowData;
+    ImDrawData* draw_data = ImGui::GetDrawData();
+    const bool is_minimized =
+        (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
+    FramePresent(wd);
 }
 
 } // namespace Renderer

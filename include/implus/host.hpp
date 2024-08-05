@@ -102,7 +102,7 @@ struct Window {
     auto ShouldClose() const -> bool;
     void SetShouldClose(bool close = true);
 
-    void NewFrame(bool poll_events) const;
+    void NewFrame(bool poll_events);
     void RenderFrame(bool swap_buffers = true);
     auto FramebufferSize() const -> Size;
 

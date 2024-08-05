@@ -1,13 +1,9 @@
 #include "implus/host-render.hpp"
 #include "implus/host.hpp"
 
+#include "host-render.hpp"
 #include <imgui_internal.h>
 
-#ifdef IMPLUS_GL_LOADER_GLAD
-#include <glad/glad.h>
-#endif
-
-// glfw3 must be included after glad!
 #include <GLFW/glfw3.h>
 #ifdef GLFW_BACKEND_SUPPORTS_WIN32
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -15,18 +11,6 @@
 #endif
 
 #include <backends/imgui_impl_glfw.h>
-
-#ifdef IMPLUS_RENDER_GL3
-#include <backends/imgui_impl_opengl3.h>
-#if __APPLE__
-// GLSL 150
-const char* glsl_version = "#version 150";
-#else
-// GLSL 130
-const char* glsl_version = "#version 130";
-#endif
-static auto glad_inited = false;
-#endif
 
 #include <algorithm>
 #include <cstdio>
@@ -111,23 +95,7 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
         static auto _ = atexit{};
     }
 
-#if defined(__APPLE__)
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // 3.2+ only
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);           // Required on Mac
-    glfwWindowHint(GLFW_SCALE_FRAMEBUFFER, GL_TRUE);
-    
-#elif defined(__linux__)
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-
-#else
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // 3.2
-    // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // 3.0+
-#endif
+    Renderer::SetupHints();
 
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
@@ -139,6 +107,7 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
     auto sz = Size{0, 0};
 
     auto native = glfwCreateWindow(256, 256, title, nullptr, nullptr);
+    glfwSetWindowUserPointer(native, this);
 
     auto b = PrimaryMonitorWorkArea();
     b.inflate(-b.size.w / 10, -b.size.h / 10);
@@ -168,20 +137,9 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
     regular_bounds.pos = {x, y};
     regular_bounds.size = {w, h};
 
-    glfwMakeContextCurrent(native);
-    if (!glad_inited) {
-        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-            glfwDestroyWindow(native);
-            handle_ = nullptr;
-            std::fputs("GLAD initialization failure\n", stderr);
-            return;
-        }
-        glad_inited = true;
-    }
+    Renderer::SetupInstance(*this);
+    Renderer::SetupWindow(*this);
 
-    glfwSwapInterval(1);
-
-    glfwSetWindowUserPointer(native, this);
     glfwSetWindowRefreshCallback(native, handleRefreshCallback);
     glfwSetFramebufferSizeCallback(native, handleFramebufferSizeCallback);
 
@@ -195,8 +153,7 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
         ImGui::StyleColorsDark();
 
         main_window_ = this;
-        ImGui_ImplOpenGL3_Init(glsl_version);
-        ImGui_ImplGlfw_InitForOpenGL(native, true);
+        Renderer::SetupImplementation(*this);
     }
 }
 
@@ -209,11 +166,12 @@ Window::~Window()
 
     auto native = native_wnd(handle_);
     if (window_counter_ == 0) {
-        ImGui_ImplOpenGL3_Shutdown();
+        Renderer::ShutdownImplementation();
         ImGui_ImplGlfw_Shutdown();
     }
     if (context_)
         ImGui::DestroyContext(context_);
+    Renderer::ShutdownInstance();
     if (handle_)
         glfwDestroyWindow(native);
 }
@@ -262,14 +220,14 @@ auto Window::ShouldClose() const -> bool
 
 void Window::SetShouldClose(bool close) { glfwSetWindowShouldClose(native_wnd(handle_), close); }
 
-void Window::NewFrame(bool poll_events) const
+void Window::NewFrame(bool poll_events)
 {
     if (glfwGetCurrentContext() != handle_)
         glfwMakeContextCurrent(native_wnd(handle_));
     ImGui::SetCurrentContext(context_);
     if (poll_events)
         glfwPollEvents();
-    ImGui_ImplOpenGL3_NewFrame();
+    Renderer::NewFrame(*this);
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 }
@@ -277,22 +235,18 @@ void Window::NewFrame(bool poll_events) const
 void Window::RenderFrame(bool swap_buffers)
 {
     ImGui::Render();
-    int display_w, display_h;
-    glfwGetFramebufferSize(native_wnd(handle_), &display_w, &display_h);
-    glViewport(0, 0, display_w, display_h);
-    glClearColor(Background.x, Background.y, Background.z, Background.w);
-    glClear(GL_COLOR_BUFFER_BIT);
+    Renderer::PrepareViewport(*this);
 
     if (OnBeforeDraw)
         OnBeforeDraw();
 
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    Renderer::RenderDrawData();
 
     if (OnAfterDraw)
         OnAfterDraw();
 
     if (swap_buffers)
-        glfwSwapBuffers(native_wnd(handle_));
+        Renderer::SwapBuffers(*this);
 
     if (pending_locate_) {
         perform_locate(*pending_locate_, pending_constrain_);
@@ -320,7 +274,8 @@ auto Window::Locate() const -> Location
     return {regular_bounds.pos, regular_bounds.size, maximized, fullscreen};
 }
 
-auto Window::IsMinimized() const -> bool {
+auto Window::IsMinimized() const -> bool
+{
     auto w = native_wnd(handle_);
     return bool(glfwGetWindowAttrib(w, GLFW_ICONIFIED));
 }
@@ -555,13 +510,6 @@ auto PrimaryMonitorWorkArea() -> Window::Bounds
     return r;
 }
 
-void InvalidateDeviceObjects()
-{
-    // something is wrong with resource re-creation
-    // for now, we only force font re-creation as a temporary workaround
-    // ImGui_ImplOpenGL3_DestroyDeviceObjects();
-    ImGui_ImplOpenGL3_DestroyFontsTexture();
-    ImGui_ImplOpenGL3_CreateFontsTexture();
-}
+void InvalidateDeviceObjects() { Renderer::InvalidateDeviceObjects(); }
 
 } // namespace ImPlus::Host

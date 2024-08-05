@@ -436,7 +436,7 @@ auto Window::ShouldClose() const -> bool { return should_close_ || all_should_cl
 
 void Window::SetShouldClose(bool close) { should_close_ = close; }
 
-void Window::NewFrame(bool poll_events) const
+void Window::NewFrame(bool poll_events) 
 {
     auto hwnd = native_wnd(this->handle_);
 

@@ -11,30 +11,8 @@
 #include <emscripten.h>
 #endif
 
+#include "host-render.hpp"
 #include <backends/imgui_impl_sdl3.h>
-
-#ifdef IMPLUS_RENDER_GL3
-#include <backends/imgui_impl_opengl3.h>
-#include <glad/glad.h>
-#if defined(__APPLE__)
-// GLSL 150
-const char* glsl_version = "#version 150";
-
-#elif defined(__ANDROID__)
-const char* glsl_version = nullptr;
-
-#elif defined(__EMSCRIPTEN__)
-// GLSL 100
-const char* glsl_version = "#version 100";
-
-#else
-// GLSL 130
-const char* glsl_version = "#version 130";
-
-#endif
-static auto glad_inited = false;
-
-#endif
 
 #include <algorithm>
 #include <cstdio>
@@ -42,7 +20,6 @@ static auto glad_inited = false;
 namespace ImPlus::Host {
 
 static bool sdl_inited = false;
-static SDL_GLContext gl_context_ = nullptr;
 extern Window* main_window_;
 extern std::size_t window_counter_;
 
@@ -152,42 +129,13 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
         static auto _ = atexit{};
     }
 
-#if defined(__APPLE__)
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-
-#elif defined(__ANDROID__)
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
-
-#elif defined(__EMSCRIPTEN__)
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
-
-#elif defined(__linux__)
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-
-#else
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-#endif
-
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-
     SDL_SetHint(SDL_HINT_IME_IMPLEMENTED_UI, "1");
 
+#if defined(IMPLUS_RENDER_GL3)
     auto window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_HIGH_PIXEL_DENSITY;
+#elif defined(IMPLUS_RENDER_VULKAN)
+    auto window_flags = SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY;
+#endif
 
 #if !defined(__EMSCRIPTEN__) && !defined(__ANDROID__)
     window_flags = window_flags | SDL_WINDOW_HIDDEN;
@@ -202,6 +150,7 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
     auto sz = Size{0, 0};
 
     auto native = SDL_CreateWindow(title, 512, 512, window_flags);
+    SDL_SetPointerProperty(SDL_GetWindowProperties(native), "implus-wnd", this);
 
     auto b = PrimaryMonitorWorkArea();
     b.inflate(-b.size.w / 10, -b.size.h / 10);
@@ -233,22 +182,8 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
     regular_bounds.pos = {x, y};
     regular_bounds.size = {w, h};
 
-    gl_context_ = SDL_GL_CreateContext(native);
-    SDL_GL_MakeCurrent(native, gl_context_);
-    if (!glad_inited) {
-        if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
-            SDL_GL_DestroyContext(gl_context_);
-            SDL_DestroyWindow(native);
-            handle_ = nullptr;
-            std::fputs("GLAD initialization failure\n", stderr);
-            return;
-        }
-        glad_inited = true;
-    }
-
-    SDL_GL_SetSwapInterval(1);
-
-    SDL_SetPointerProperty(SDL_GetWindowProperties(native), "implus-wnd", this);
+    Renderer::SetupInstance(*this);
+    Renderer::SetupWindow(*this);
 
     SDL_AddEventWatch(event_watcher, nullptr);
 
@@ -259,8 +194,7 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
         ImGui::StyleColorsDark();
 
         main_window_ = this;
-        ImGui_ImplOpenGL3_Init(glsl_version);
-        ImGui_ImplSDL3_InitForOpenGL(native, gl_context_);
+        Renderer::SetupImplementation(*this);
     }
 }
 
@@ -273,13 +207,12 @@ Window::~Window()
 
     auto native = native_wnd(handle_);
     if (window_counter_ == 0) {
-        ImGui_ImplOpenGL3_Shutdown();
+        Renderer::ShutdownImplementation();
         ImGui_ImplSDL3_Shutdown();
     }
     if (context_)
         ImGui::DestroyContext(context_);
-    if (gl_context_)
-        SDL_GL_DestroyContext(gl_context_);
+    Renderer::ShutdownInstance();
     if (handle_)
         SDL_DestroyWindow(native);
 }
@@ -322,7 +255,7 @@ auto Window::ShouldClose() const -> bool { return should_close_ || all_should_cl
 
 void Window::SetShouldClose(bool close) { should_close_ = true; }
 
-void Window::NewFrame(bool poll_events) const
+void Window::NewFrame(bool poll_events)
 {
     auto& io = ImGui::GetIO();
 
@@ -347,7 +280,7 @@ void Window::NewFrame(bool poll_events) const
         }
     }
 
-    ImGui_ImplOpenGL3_NewFrame();
+    Renderer::NewFrame(*this);
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 }
@@ -355,24 +288,18 @@ void Window::NewFrame(bool poll_events) const
 void Window::RenderFrame(bool swap_buffers)
 {
     ImGui::Render();
-    int display_w, display_h;
-
-    SDL_GetWindowSizeInPixels(native_wnd(handle_), &display_w, &display_h);
-
-    glViewport(0, 0, display_w, display_h);
-    glClearColor(Background.x, Background.y, Background.z, Background.w);
-    glClear(GL_COLOR_BUFFER_BIT);
+    Renderer::PrepareViewport(*this);
 
     if (OnBeforeDraw)
         OnBeforeDraw();
 
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    Renderer::RenderDrawData();
 
     if (OnAfterDraw)
         OnAfterDraw();
 
     if (swap_buffers)
-        SDL_GL_SwapWindow(native_wnd(handle_));
+        Renderer::SwapBuffers(*this);
 
     if (pending_locate_) {
         perform_locate(*pending_locate_, pending_constrain_);
@@ -608,13 +535,6 @@ auto PrimaryMonitorWorkArea() -> Window::Bounds
     return Window::Bounds{{r.x, r.y}, {r.w, r.h}};
 }
 
-void InvalidateDeviceObjects()
-{
-    // something is wrong with resource re-creation
-    // for now, we only force font re-creation as a temporary workaround
-    // ImGui_ImplOpenGL3_DestroyDeviceObjects();
-    ImGui_ImplOpenGL3_DestroyFontsTexture();
-    ImGui_ImplOpenGL3_CreateFontsTexture();
-}
+void InvalidateDeviceObjects() { Renderer::InvalidateDeviceObjects(); }
 
 } // namespace ImPlus::Host

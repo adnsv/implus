@@ -10,8 +10,8 @@
 #
 # IMGUI_RENDER_IMPL renderer backend
 #
-#   - GL2 (?)
 #   - GL3
+#   - VULKAN
 #   - DX11
 #
 # IMGUI_ENABLE_FREETYPE
@@ -56,9 +56,9 @@ else()
 endif()
 
 set(IMGUI_RENDER_IMPL "${IMGUI_DEFAULT_RENDER_IMPL}" CACHE STRING "ImGui render implementation")
-set_property(CACHE IMGUI_RENDER_IMPL PROPERTY STRINGS "DX11" "GL2" "GL3" "VULKAN")
+set_property(CACHE IMGUI_RENDER_IMPL PROPERTY STRINGS "DX11" "GL3" "VULKAN")
 
-if((IMGUI_RENDER_IMPL STREQUAL "GL2") OR (IMGUI_RENDER_IMPL STREQUAL "GL3"))
+if(IMGUI_RENDER_IMPL STREQUAL "GL3")
     set(IMGUI_GL_LOADER_IMPL "GLAD" CACHE STRING "ImGui OpenGL loader implementation")
 endif()
 
@@ -100,11 +100,7 @@ endif()
 message(STATUS "ImGui -- Render implementation: ${IMGUI_RENDER_IMPL}")
 set(IMGUI_RENDER_IMPL "${IMGUI_RENDER_IMPL}" PARENT_SCOPE)
 
-if(IMGUI_RENDER_IMPL STREQUAL "GL2")
-    target_sources(imgui PUBLIC "${IMGUI_DIR}/backends/imgui_impl_opengl2.cpp")
-    set(IMGUI_USE_GL_LOADER ON)
-
-elseif(IMGUI_RENDER_IMPL STREQUAL "GL3")
+if(IMGUI_RENDER_IMPL STREQUAL "GL3")
     target_sources(imgui PUBLIC "${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp")
     set(IMGUI_USE_GL_LOADER ON)
 
@@ -166,7 +162,7 @@ if(IMGUI_RENDER_IMPL STREQUAL "GL3")
 endif()
 
 if(IMGUI_RENDER_IMPL STREQUAL "VULKAN")
-    find_package(Vulkan REQUIRED FATAL_ERROR)
+    find_package(Vulkan REQUIRED)
     message(STATUS "ImGui -- Using Vulkan renderer")
     target_link_libraries(imgui PUBLIC "Vulkan::Vulkan")
 endif()
