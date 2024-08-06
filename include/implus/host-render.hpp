@@ -2,8 +2,10 @@
 
 #include <functional>
 
-#ifdef IMPLUS_RENDER_DX11
+#if defined(IMPLUS_RENDER_DX11)
 #include <d3d11.h>
+#elif defined(IMPLUS_RENDER_VULKAN)
+#include <vulkan/vulkan.h>
 #endif
 
 namespace ImPlus::Host::Render {
@@ -13,7 +15,14 @@ struct DeviceInfo {
     ID3D11Device* device = nullptr;
     ID3D11DeviceContext* context = nullptr;
 };
-#else
+#elif defined(IMPLUS_RENDER_VULKAN)
+struct DeviceInfo {
+    VkDevice device;
+    VkPhysicalDevice physical_device;
+    VkQueue graphics_queue;
+    VkCommandPool command_pool;
+};
+#else 
 struct DeviceInfo {
     int dummy = 0;
 };
