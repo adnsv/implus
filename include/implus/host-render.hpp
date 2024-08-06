@@ -17,10 +17,13 @@ struct DeviceInfo {
 };
 #elif defined(IMPLUS_RENDER_VULKAN)
 struct DeviceInfo {
+    VkAllocationCallbacks const* allocator;
     VkDevice device;
     VkPhysicalDevice physical_device;
     VkQueue graphics_queue;
     VkCommandPool command_pool;
+    VkDescriptorPool descriptor_pool;
+    VkDescriptorSetLayout descriptor_set_layout;
 };
 #else 
 struct DeviceInfo {
