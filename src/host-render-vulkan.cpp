@@ -445,7 +445,7 @@ void SetupInstance(ImPlus::Host::Window& wnd)
 void SetupWindow(ImPlus::Host::Window& wnd)
 {
 #if defined(IMPLUS_HOST_GLFW)
-    auto window = static_cast<GLFWWindow*>(wnd.Handle());
+    auto window = static_cast<GLFWwindow*>(wnd.Handle());
 #elif defined(IMPLUS_HOST_SDL2) || defined(IMPLUS_HOST_SDL3)
     auto window = static_cast<SDL_Window*>(wnd.Handle());
 #endif
@@ -456,7 +456,7 @@ void SetupWindow(ImPlus::Host::Window& wnd)
 #if defined(IMPLUS_HOST_GLFW)
     err = glfwCreateWindowSurface(g_Instance, window, g_Allocator, &surface);
     check_vk_result(err);
-#elif defined(IMPLUS_HOST_SDL2) 
+#elif defined(IMPLUS_HOST_SDL2)
     if (SDL_Vulkan_CreateSurface(window, g_Instance, &surface) != SDL_TRUE)
         throw std::runtime_error("Failed to create Vulkan surface.");
 #elif defined(IMPLUS_HOST_SDL3)
@@ -473,7 +473,7 @@ void SetupWindow(ImPlus::Host::Window& wnd)
 void SetupImplementation(ImPlus::Host::Window& wnd)
 {
 #if defined(IMPLUS_HOST_GLFW)
-    auto window = static_cast<GLFWWindow*>(wnd.Handle());
+    auto window = static_cast<GLFWwindow*>(wnd.Handle());
 #elif defined(IMPLUS_HOST_SDL2) || defined(IMPLUS_HOST_SDL3)
     auto window = static_cast<SDL_Window*>(wnd.Handle());
 #endif
@@ -528,20 +528,18 @@ void InvalidateDeviceObjects()
 void NewFrame(ImPlus::Host::Window& wnd)
 {
 #if defined(IMPLUS_HOST_GLFW)
-    auto window = static_cast<GLFWWindow*>(wnd.Handle());
+    auto window = static_cast<GLFWwindow*>(wnd.Handle());
 #elif defined(IMPLUS_HOST_SDL2) || defined(IMPLUS_HOST_SDL3)
     auto window = static_cast<SDL_Window*>(wnd.Handle());
 #endif
 
     auto const fbsize = wnd.FramebufferSize();
-    int fb_width, fb_height;
-    SDL_GetWindowSize(window, &fb_width, &fb_height);
-    if (fb_width > 0 && fb_height > 0 &&
-        (g_SwapChainRebuild || g_MainWindowData.Width != fb_width ||
-            g_MainWindowData.Height != fb_height)) {
+    if (fbsize.w > 0 && fbsize.h > 0 &&
+        (g_SwapChainRebuild || g_MainWindowData.Width != fbsize.w ||
+            g_MainWindowData.Height != fbsize.h)) {
         ImGui_ImplVulkan_SetMinImageCount(g_MinImageCount);
         ImGui_ImplVulkanH_CreateOrResizeWindow(g_Instance, g_PhysicalDevice, g_Device,
-            &g_MainWindowData, g_QueueFamily, g_Allocator, fb_width, fb_height, g_MinImageCount);
+            &g_MainWindowData, g_QueueFamily, g_Allocator, fbsize.w, fbsize.h, g_MinImageCount);
         g_MainWindowData.FrameIndex = 0;
         g_SwapChainRebuild = false;
     }
