@@ -406,7 +406,19 @@ static void FramePresent(ImGui_ImplVulkanH_Window* wd)
         (wd->SemaphoreIndex + 1) % wd->SemaphoreCount; // Now we can use the next set of semaphores
 }
 
-namespace Renderer {
+namespace ImPlus::Render {
+
+auto GetDeviceInfo() -> Render::DeviceInfo
+{
+    return Render::DeviceInfo{
+        .allocator = g_Allocator,
+        .device = g_Device,
+        .physical_device = g_PhysicalDevice,
+        .graphics_queue = g_Queue,
+        .descriptor_pool = g_DescriptorPool,
+        //.descriptor_set_layout = {},
+    };
+}
 
 void SetupHints()
 {
@@ -576,4 +588,4 @@ void SwapBuffers(ImPlus::Host::Window&)
     FramePresent(wd);
 }
 
-} // namespace Renderer
+} // namespace ImPlus::Render

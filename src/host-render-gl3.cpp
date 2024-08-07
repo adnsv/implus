@@ -22,7 +22,7 @@
 
 #include <backends/imgui_impl_opengl3.h>
 
-namespace Renderer {
+namespace ImPlus::Render {
 
 #if defined(__APPLE__)
 // GLSL 150
@@ -47,6 +47,12 @@ static auto glad_inited = false;
 #elif defined(IMPLUS_HOST_SDL2) || defined(IMPLUS_HOST_SDL3)
 static SDL_GLContext gl_context_ = nullptr;
 #endif
+
+auto GetDeviceInfo() -> Render::DeviceInfo
+{
+    // OpenGL device is a stub
+    return {};
+}
 
 void SetupHints()
 {
@@ -167,13 +173,14 @@ void ShutdownImplementation() { ImGui_ImplOpenGL3_Shutdown(); }
 
 void ShutdownInstance()
 {
-#if defined(IMPLUS_HOST_SDL2)
+#if defined(IMPLUS_HOST_GLFW)
+    // noop
+#elif defined(IMPLUS_HOST_SDL2)
     if (gl_context_) {
         SDL_GL_DeleteContext(gl_context_);
         gl_context_ = nullptr;
     }
-#endif
-#if defined(IMPLUS_HOST_SDL3)
+#elif defined(IMPLUS_HOST_SDL3)
     if (gl_context_) {
         SDL_GL_DestroyContext(gl_context_);
         gl_context_ = nullptr;
@@ -210,4 +217,4 @@ void SwapBuffers(ImPlus::Host::Window& wnd)
 #endif
 }
 
-} // namespace Renderer
+} // namespace ImPlus::Render

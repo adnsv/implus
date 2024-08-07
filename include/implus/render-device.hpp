@@ -8,7 +8,7 @@
 #include <vulkan/vulkan.h>
 #endif
 
-namespace ImPlus::Host::Render {
+namespace ImPlus::Render {
 
 #if defined(IMPLUS_RENDER_DX11)
 struct DeviceInfo {
@@ -21,9 +21,7 @@ struct DeviceInfo {
     VkDevice device;
     VkPhysicalDevice physical_device;
     VkQueue graphics_queue;
-    VkCommandPool command_pool;
     VkDescriptorPool descriptor_pool;
-    VkDescriptorSetLayout descriptor_set_layout;
 };
 #else 
 struct DeviceInfo {
@@ -33,4 +31,4 @@ struct DeviceInfo {
 
 inline std::function<void(DeviceInfo const& info)> OnDeviceChange;
 
-} // namespace ImPlus::Host::Render
+} // namespace ImPlus::Render

@@ -1,5 +1,5 @@
-#include "implus/host-render.hpp"
-#include "implus/host.hpp"
+#include <implus/render-device.hpp>
+#include <implus/host.hpp>
 
 #include "host-render.hpp"
 #include <imgui_internal.h>
@@ -95,7 +95,7 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
         static auto _ = atexit{};
     }
 
-    Renderer::SetupHints();
+    Render::SetupHints();
 
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
@@ -137,8 +137,8 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
     regular_bounds.pos = {x, y};
     regular_bounds.size = {w, h};
 
-    Renderer::SetupInstance(*this);
-    Renderer::SetupWindow(*this);
+    Render::SetupInstance(*this);
+    Render::SetupWindow(*this);
 
     glfwSetWindowRefreshCallback(native, handleRefreshCallback);
     glfwSetFramebufferSizeCallback(native, handleFramebufferSizeCallback);
@@ -153,7 +153,7 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
         ImGui::StyleColorsDark();
 
         main_window_ = this;
-        Renderer::SetupImplementation(*this);
+        Render::SetupImplementation(*this);
     }
 }
 
@@ -166,12 +166,12 @@ Window::~Window()
 
     auto native = native_wnd(handle_);
     if (window_counter_ == 0) {
-        Renderer::ShutdownImplementation();
+        Render::ShutdownImplementation();
         ImGui_ImplGlfw_Shutdown();
     }
     if (context_)
         ImGui::DestroyContext(context_);
-    Renderer::ShutdownInstance();
+    Render::ShutdownInstance();
     if (handle_)
         glfwDestroyWindow(native);
 }
@@ -227,7 +227,7 @@ void Window::NewFrame(bool poll_events)
     ImGui::SetCurrentContext(context_);
     if (poll_events)
         glfwPollEvents();
-    Renderer::NewFrame(*this);
+    Render::NewFrame(*this);
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 }
@@ -235,18 +235,18 @@ void Window::NewFrame(bool poll_events)
 void Window::RenderFrame(bool swap_buffers)
 {
     ImGui::Render();
-    Renderer::PrepareViewport(*this);
+    Render::PrepareViewport(*this);
 
     if (OnBeforeDraw)
         OnBeforeDraw();
 
-    Renderer::RenderDrawData();
+    Render::RenderDrawData();
 
     if (OnAfterDraw)
         OnAfterDraw();
 
     if (swap_buffers)
-        Renderer::SwapBuffers(*this);
+        Render::SwapBuffers(*this);
 
     if (pending_locate_) {
         perform_locate(*pending_locate_, pending_constrain_);
@@ -510,6 +510,6 @@ auto PrimaryMonitorWorkArea() -> Window::Bounds
     return r;
 }
 
-void InvalidateDeviceObjects() { Renderer::InvalidateDeviceObjects(); }
+void InvalidateDeviceObjects() { Render::InvalidateDeviceObjects(); }
 
 } // namespace ImPlus::Host

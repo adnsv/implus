@@ -1,6 +1,7 @@
 #include <implus/host.hpp>
+#include <implus/render-device.hpp>
 
-namespace Renderer {
+namespace ImPlus::Render {
 void SetupHints();
 
 void SetupInstance(ImPlus::Host::Window&);
@@ -23,4 +24,6 @@ void RenderDrawData();
 
 void SwapBuffers(ImPlus::Host::Window&);
 
-} // namespace Renderer
+auto GetDeviceInfo() -> Render::DeviceInfo;
+
+} // namespace ImPlus::Render
