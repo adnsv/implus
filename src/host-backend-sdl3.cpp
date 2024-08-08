@@ -1,5 +1,5 @@
-#include <implus/render-device.hpp>
 #include <implus/host.hpp>
+#include <implus/render-device.hpp>
 
 #include <imgui_internal.h>
 
@@ -182,10 +182,13 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
     regular_bounds.pos = {x, y};
     regular_bounds.size = {w, h};
 
-    Render::SetupInstance(*this);
-    Render::SetupWindow(*this);
+    if (window_counter_ == 1) {
+        Render::SetupInstance(*this);
+        if (Render::OnDeviceChange)
+            Render::OnDeviceChange(Render::GetDeviceInfo());
+    }
 
-    SDL_AddEventWatch(event_watcher, nullptr);
+    Render::SetupWindow(*this);
 
     context_ = ImGui::CreateContext();
 
@@ -196,6 +199,8 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
         main_window_ = this;
         Render::SetupImplementation(*this);
     }
+
+    SDL_AddEventWatch(event_watcher, nullptr);
 }
 
 Window::~Window()
@@ -207,6 +212,8 @@ Window::~Window()
 
     auto native = native_wnd(handle_);
     if (window_counter_ == 0) {
+        if (Render::OnDeviceChange)
+            Render::OnDeviceChange({});
         Render::ShutdownImplementation();
         ImGui_ImplSDL3_Shutdown();
     }

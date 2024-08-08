@@ -50,11 +50,17 @@ static SDL_GLContext gl_context_ = nullptr;
 
 auto GetDeviceInfo() -> Render::DeviceInfo
 {
-    // OpenGL device is a stub
+    // OpenGL device info is a stub
     return {};
 }
 
-void SetupHints()
+auto GetFrameInfo() -> Render::FrameInfo
+{
+    // OpenGL frame info is a stub
+    return {};
+}
+
+void SetupWindowHints()
 {
 
 #if defined(IMPLUS_HOST_GLFW)
@@ -112,6 +118,19 @@ void SetupHints()
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 #endif
+}
+
+void SetHint(ImPlus::Render::U32Hint h, uint32_t v)
+{
+    switch (h) {
+    }
+}
+
+auto GetHint(ImPlus::Render::U32Hint h) -> std::optional<uint32_t>
+{
+    switch (h) {
+    default: return {};
+    }
 }
 
 void SetupInstance(ImPlus::Host::Window& wnd) {}

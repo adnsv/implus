@@ -141,7 +141,9 @@ elseif(IMPLUS_HOST_IMPL STREQUAL "WIN32")
 
 endif()
 
-if(IMPLUS_RENDER_IMPL STREQUAL "GL3" )
+if (IMPLUS_RENDER_IMPL STREQUAL "DX11")
+    target_sources(implus PUBLIC "src/host-render-dx11.cpp")
+elseif(IMPLUS_RENDER_IMPL STREQUAL "GL3")
     target_sources(implus PUBLIC "src/host-render-gl3.cpp")
 elseif(IMPLUS_RENDER_IMPL STREQUAL "VULKAN")
     target_sources(implus PUBLIC "src/host-render-vulkan.cpp")

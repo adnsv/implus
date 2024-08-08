@@ -1,5 +1,5 @@
-#include <implus/render-device.hpp>
 #include <implus/host.hpp>
+#include <implus/render-device.hpp>
 
 #include "host-render.hpp"
 #include <imgui_internal.h>
@@ -95,7 +95,7 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
         static auto _ = atexit{};
     }
 
-    Render::SetupHints();
+    Render::SetupWindowHints();
 
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
@@ -137,14 +137,13 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
     regular_bounds.pos = {x, y};
     regular_bounds.size = {w, h};
 
-    Render::SetupInstance(*this);
+    if (window_counter_ == 1) {
+        Render::SetupInstance(*this);
+        if (Render::OnDeviceChange)
+            Render::OnDeviceChange(Render::GetDeviceInfo());
+    }
+
     Render::SetupWindow(*this);
-
-    glfwSetWindowRefreshCallback(native, handleRefreshCallback);
-    glfwSetFramebufferSizeCallback(native, handleFramebufferSizeCallback);
-
-    glfwSetWindowPosCallback(native, handleWindowPosCallback);
-    glfwSetWindowSizeCallback(native, handleWindowSizeCallback);
 
     context_ = ImGui::CreateContext();
 
@@ -155,6 +154,12 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
         main_window_ = this;
         Render::SetupImplementation(*this);
     }
+
+    glfwSetWindowRefreshCallback(native, handleRefreshCallback);
+    glfwSetFramebufferSizeCallback(native, handleFramebufferSizeCallback);
+
+    glfwSetWindowPosCallback(native, handleWindowPosCallback);
+    glfwSetWindowSizeCallback(native, handleWindowSizeCallback);
 }
 
 Window::~Window()
@@ -166,12 +171,15 @@ Window::~Window()
 
     auto native = native_wnd(handle_);
     if (window_counter_ == 0) {
+        if (Render::OnDeviceChange)
+            Render::OnDeviceChange({});
         Render::ShutdownImplementation();
         ImGui_ImplGlfw_Shutdown();
     }
     if (context_)
         ImGui::DestroyContext(context_);
-    Render::ShutdownInstance();
+    if (window_counter_ == 0)
+        Render::ShutdownInstance();
     if (handle_)
         glfwDestroyWindow(native);
 }

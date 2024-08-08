@@ -50,6 +50,9 @@ static ImGui_ImplVulkanH_Window g_MainWindowData;
 static uint32_t g_MinImageCount = 2;
 static bool g_SwapChainRebuild = false;
 
+static auto Hint_CombinedImageSamplerCount = uint32_t{1};
+static auto Hint_DescriptorPoolMaxSets = uint32_t{1};
+
 static void check_vk_result(VkResult err)
 {
     if (err == 0)
@@ -236,17 +239,14 @@ static void SetupVulkan(ImVector<const char*> instance_extensions)
     }
 
     // Create Descriptor Pool
-    // The example only requires a single combined image sampler descriptor for the font image and
-    // only uses one descriptor set (for that) If you wish to load e.g. additional textures you may
-    // need to alter pools sizes.
     {
         VkDescriptorPoolSize pool_sizes[] = {
-            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1},
+            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, Hint_CombinedImageSamplerCount},
         };
         VkDescriptorPoolCreateInfo pool_info = {};
         pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        pool_info.maxSets = 1;
+        pool_info.maxSets = Hint_DescriptorPoolMaxSets;
         pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
         pool_info.pPoolSizes = pool_sizes;
         err = vkCreateDescriptorPool(g_Device, &pool_info, g_Allocator, &g_DescriptorPool);
@@ -408,6 +408,25 @@ static void FramePresent(ImGui_ImplVulkanH_Window* wd)
 
 namespace ImPlus::Render {
 
+void SetHint(ImPlus::Render::U32Hint h, uint32_t v)
+{
+    switch (h) {
+    case ImPlus::Render::Vulkan_CombinedImageSamplerCount:
+        Hint_CombinedImageSamplerCount = v;
+        break;
+    case ImPlus::Render::Vulkan_DescriptorPoolMaxSets: Hint_DescriptorPoolMaxSets = v; break;
+    }
+}
+
+auto GetHint(ImPlus::Render::U32Hint h) -> std::optional<uint32_t>
+{
+    switch (h) {
+    case ImPlus::Render::Vulkan_CombinedImageSamplerCount: return Hint_CombinedImageSamplerCount;
+    case ImPlus::Render::Vulkan_DescriptorPoolMaxSets: return Hint_DescriptorPoolMaxSets;
+    default: return {};
+    }
+}
+
 auto GetDeviceInfo() -> Render::DeviceInfo
 {
     return Render::DeviceInfo{
@@ -420,7 +439,20 @@ auto GetDeviceInfo() -> Render::DeviceInfo
     };
 }
 
-void SetupHints()
+auto GetFrameInfo() -> Render::FrameInfo
+{
+    auto* wd = &g_MainWindowData;
+    if (!wd)
+        return {};
+
+    auto* fd = &wd->Frames[wd->FrameIndex];
+
+    return Render::FrameInfo{
+        .command_pool = fd->CommandPool,
+    };
+}
+
+void SetupWindowHints()
 {
 #if defined(IMPLUS_HOST_GLFW)
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -556,7 +588,6 @@ void NewFrame(ImPlus::Host::Window& wnd)
         g_SwapChainRebuild = false;
     }
 
-    // Start the Dear ImGui frame
     ImGui_ImplVulkan_NewFrame();
 }
 

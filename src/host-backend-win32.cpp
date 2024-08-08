@@ -1,5 +1,6 @@
-#include <implus/render-device.hpp>
+#include "host-render.hpp"
 #include <implus/host.hpp>
+#include <implus/render-device.hpp>
 
 #include <imgui_internal.h>
 
@@ -70,88 +71,6 @@ static auto wnd_class_inited = false;
 static auto inst = ::GetModuleHandleW(NULL);
 static auto all_should_close = false;
 
-static ID3D11Device* g_pd3dDevice = NULL;
-static ID3D11DeviceContext* g_pd3dDeviceContext = NULL;
-static IDXGISwapChain* g_pSwapChain = NULL;
-static ID3D11RenderTargetView* g_mainRenderTargetView = NULL;
-
-void CreateRenderTarget();
-void CleanupRenderTarget();
-
-bool CreateDeviceD3D(HWND hWnd)
-{
-    // Setup swap chain
-    DXGI_SWAP_CHAIN_DESC sd;
-    ZeroMemory(&sd, sizeof(sd));
-    sd.BufferCount = 2;
-    sd.BufferDesc.Width = 0;
-    sd.BufferDesc.Height = 0;
-    sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    sd.BufferDesc.RefreshRate.Numerator = 60;
-    sd.BufferDesc.RefreshRate.Denominator = 1;
-    sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    sd.OutputWindow = hWnd;
-    sd.SampleDesc.Count = 1;
-    sd.SampleDesc.Quality = 0;
-    sd.Windowed = TRUE;
-    sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-
-    UINT createDeviceFlags = 0;
-    // createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
-    D3D_FEATURE_LEVEL featureLevel;
-    const D3D_FEATURE_LEVEL featureLevelArray[2] = {
-        D3D_FEATURE_LEVEL_11_0,
-        D3D_FEATURE_LEVEL_10_0,
-    };
-    if (D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags,
-            featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice,
-            &featureLevel, &g_pd3dDeviceContext) != S_OK)
-        return false;
-
-    CreateRenderTarget();
-
-    if (Render::OnDeviceChange)
-        Render::OnDeviceChange({g_pd3dDevice, g_pd3dDeviceContext});
-    return true;
-}
-
-void CleanupDeviceD3D()
-{
-    CleanupRenderTarget();
-    if (g_pSwapChain) {
-        g_pSwapChain->Release();
-        g_pSwapChain = NULL;
-    }
-    if (Render::OnDeviceChange && (g_pd3dDeviceContext || g_pd3dDevice))
-        Render::OnDeviceChange({nullptr, nullptr});
-
-    if (g_pd3dDeviceContext) {
-        g_pd3dDeviceContext->Release();
-        g_pd3dDeviceContext = NULL;
-    }
-    if (g_pd3dDevice) {
-        g_pd3dDevice->Release();
-        g_pd3dDevice = NULL;
-    }
-}
-
-void CreateRenderTarget()
-{
-    ID3D11Texture2D* pBackBuffer;
-    g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
-    g_pd3dDevice->CreateRenderTargetView(pBackBuffer, NULL, &g_mainRenderTargetView);
-    pBackBuffer->Release();
-}
-
-void CleanupRenderTarget()
-{
-    if (g_mainRenderTargetView) {
-        g_mainRenderTargetView->Release();
-        g_mainRenderTargetView = NULL;
-    }
-}
-
 void notifyMove(Window& w, Window::Pos const& xy)
 {
     if (!w.suspendNotifications)
@@ -171,12 +90,6 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     switch (msg) {
 
     case WM_SIZE:
-        if (g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED) {
-            CleanupRenderTarget();
-            g_pSwapChain->ResizeBuffers(
-                0, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
-            CreateRenderTarget();
-        }
         {
             int width = short(LOWORD(lParam));
             int height = short(HIWORD(lParam));
@@ -228,7 +141,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         return TABLET_DISABLE_PRESSANDHOLD | TABLET_DISABLE_PENTAPFEEDBACK |
                TABLET_DISABLE_PENBARRELFEEDBACK | TABLET_DISABLE_TOUCHUIFORCEON |
                TABLET_DISABLE_TOUCHUIFORCEOFF | TABLET_DISABLE_TOUCHSWITCH | TABLET_DISABLE_FLICKS |
-               TABLET_DISABLE_SMOOTHSCROLLING | TABLET_DISABLE_FLICKFALLBACKKEYS;             
+               TABLET_DISABLE_SMOOTHSCROLLING | TABLET_DISABLE_FLICKFALLBACKKEYS;
 
     case WM_DROPFILES: {
         auto w = reinterpret_cast<Window*>(::GetWindowLongPtrW(hWnd, GWLP_USERDATA));
@@ -340,10 +253,9 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
     ::SetWindowLongPtrW(hwnd, GWLP_USERDATA, LONG_PTR(this));
 
     if (window_counter_ == 1) {
-        if (!CreateDeviceD3D(hwnd)) {
-            CleanupDeviceD3D();
-            return;
-        }
+        Render::SetupInstance(*this);
+        if (Render::OnDeviceChange)
+            Render::OnDeviceChange(Render::GetDeviceInfo());
     }
 
     context_ = ImGui::CreateContext();
@@ -355,7 +267,7 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
         main_window_ = this;
 
         ImGui_ImplWin32_Init(hwnd);
-        ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
+        Render::SetupImplementation(*this);
     }
 }
 
@@ -368,13 +280,15 @@ Window::~Window()
 
     auto hwnd = native_wnd(this->handle_);
     if (window_counter_ == 0) {
-        ImGui_ImplDX11_Shutdown();
+        if (Render::OnDeviceChange)
+            Render::OnDeviceChange({});
+        Render::ShutdownImplementation();
         ImGui_ImplWin32_Shutdown();
     }
     if (context_)
         ImGui::DestroyContext(context_);
     if (window_counter_ == 0)
-        CleanupDeviceD3D();
+        Render::ShutdownInstance();
     if (hwnd) {
         ::SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
         ::DestroyWindow(hwnd);
@@ -383,8 +297,6 @@ Window::~Window()
 
 void Window::Cleanup()
 {
-    CleanupDeviceD3D();
-
     if (wnd_class_inited) {
         wnd_class_inited = false;
         ::UnregisterClassW(wnd_class_name, inst);
@@ -436,7 +348,7 @@ auto Window::ShouldClose() const -> bool { return should_close_ || all_should_cl
 
 void Window::SetShouldClose(bool close) { should_close_ = close; }
 
-void Window::NewFrame(bool poll_events) 
+void Window::NewFrame(bool poll_events)
 {
     auto hwnd = native_wnd(this->handle_);
 
@@ -458,46 +370,25 @@ void Window::NewFrame(bool poll_events)
         }
     }
 
-    ImGui_ImplDX11_NewFrame();
+    Render::NewFrame(*this);
     ImGui_ImplWin32_NewFrame();
-
-    auto& g = *GImGui;
-    if (g.IO.DisplaySize.x < 0.0f || g.IO.DisplaySize.y < 0.0f) {
-        printf("bad display size\n");
-        RECT rect;
-        if (!::IsWindow(hwnd)) {
-            printf("bad hwnd");
-        }
-        if (::GetClientRect(hwnd, &rect)) {
-            if (rect.right < 0 || rect.bottom < 0) {
-                printf("bad client rect size");
-            }
-        }
-        else
-            printf("bad hwnd");
-
-        ImGui_ImplWin32_NewFrame();
-    }
-
     ImGui::NewFrame();
 }
 
 void Window::RenderFrame(bool swap_buffers)
 {
     ImGui::Render();
-
-    g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);
-    g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, (float*)&Background);
+    Render::PrepareViewport(*this);
 
     if (OnBeforeDraw)
         OnBeforeDraw();
 
-    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+    Render::RenderDrawData();
 
     if (OnAfterDraw)
         OnAfterDraw();
 
-    g_pSwapChain->Present(1, 0); // Present with vsync
+    Render::SwapBuffers(*this);
 
     if (pending_locate_) {
         perform_locate(*pending_locate_, pending_constrain_);
@@ -559,7 +450,8 @@ auto Window::Locate() const -> Location
     return {regular_bounds.pos, regular_bounds.size, maximized, fullscreen};
 }
 
-auto Window::IsMinimized() const -> bool {
+auto Window::IsMinimized() const -> bool
+{
     auto hwnd = native_wnd(this->handle_);
     if (!::IsWindow(hwnd))
         return false;

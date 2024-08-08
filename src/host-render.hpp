@@ -2,7 +2,7 @@
 #include <implus/render-device.hpp>
 
 namespace ImPlus::Render {
-void SetupHints();
+void SetupWindowHints();
 
 void SetupInstance(ImPlus::Host::Window&);
 
@@ -23,7 +23,5 @@ void PrepareViewport(ImPlus::Host::Window&);
 void RenderDrawData();
 
 void SwapBuffers(ImPlus::Host::Window&);
-
-auto GetDeviceInfo() -> Render::DeviceInfo;
 
 } // namespace ImPlus::Render
