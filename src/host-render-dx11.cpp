@@ -22,6 +22,12 @@ auto GetDeviceInfo() -> Render::DeviceInfo
 
 auto GetFrameInfo() -> Render::FrameInfo { return {}; }
 
+void SetHint(ImPlus::Render::U32Hint h, uint32_t v)
+{
+    switch (h) {
+    }
+}
+
 static void createRenderTarget()
 {
     ID3D11Texture2D* pBackBuffer;
@@ -113,8 +119,8 @@ void NewFrame(ImPlus::Host::Window& wnd)
         g_FramebufferSize = sz;
         cleanupRenderTarget();
         g_pSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
-        //g_pSwapChain->ResizeBuffers(
-        //    0, (UINT)LOWORD(sz.w), (UINT)HIWORD(sz.h), DXGI_FORMAT_UNKNOWN, 0);
+        // g_pSwapChain->ResizeBuffers(
+        //     0, (UINT)LOWORD(sz.w), (UINT)HIWORD(sz.h), DXGI_FORMAT_UNKNOWN, 0);
         createRenderTarget();
     }
 

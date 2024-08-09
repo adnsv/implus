@@ -45,6 +45,5 @@ enum U32Hint {
 };
 
 void SetHint(U32Hint h, uint32_t value);
-auto GetHint(U32Hint h) -> std::optional<uint32_t>;
 
 } // namespace ImPlus::Render

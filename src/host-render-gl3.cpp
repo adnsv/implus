@@ -126,13 +126,6 @@ void SetHint(ImPlus::Render::U32Hint h, uint32_t v)
     }
 }
 
-auto GetHint(ImPlus::Render::U32Hint h) -> std::optional<uint32_t>
-{
-    switch (h) {
-    default: return {};
-    }
-}
-
 void SetupInstance(ImPlus::Host::Window& wnd) {}
 
 void SetupWindow(ImPlus::Host::Window& wnd)

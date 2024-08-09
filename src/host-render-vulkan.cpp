@@ -418,15 +418,6 @@ void SetHint(ImPlus::Render::U32Hint h, uint32_t v)
     }
 }
 
-auto GetHint(ImPlus::Render::U32Hint h) -> std::optional<uint32_t>
-{
-    switch (h) {
-    case ImPlus::Render::Vulkan_CombinedImageSamplerCount: return Hint_CombinedImageSamplerCount;
-    case ImPlus::Render::Vulkan_DescriptorPoolMaxSets: return Hint_DescriptorPoolMaxSets;
-    default: return {};
-    }
-}
-
 auto GetDeviceInfo() -> Render::DeviceInfo
 {
     return Render::DeviceInfo{
@@ -435,7 +426,6 @@ auto GetDeviceInfo() -> Render::DeviceInfo
         .physical_device = g_PhysicalDevice,
         .graphics_queue = g_Queue,
         .descriptor_pool = g_DescriptorPool,
-        //.descriptor_set_layout = {},
     };
 }
 
