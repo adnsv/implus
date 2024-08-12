@@ -420,12 +420,17 @@ void SetHint(ImPlus::Render::U32Hint h, uint32_t v)
 
 auto GetDeviceInfo() -> Render::DeviceInfo
 {
+    //auto bd = ImGui_ImplVulkan_GetBackendData();
+    auto* wd = &g_MainWindowData;
+    
     return Render::DeviceInfo{
         .allocator = g_Allocator,
         .device = g_Device,
         .physical_device = g_PhysicalDevice,
         .graphics_queue = g_Queue,
         .descriptor_pool = g_DescriptorPool,
+        .render_pass = wd->RenderPass,
+        .render_subpass = 
     };
 }
 
@@ -439,6 +444,7 @@ auto GetFrameInfo() -> Render::FrameInfo
 
     return Render::FrameInfo{
         .command_pool = fd->CommandPool,
+        .command_buffer = fd->CommandBuffer,
     };
 }
 

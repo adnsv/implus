@@ -23,9 +23,12 @@ struct DeviceInfo {
     VkPhysicalDevice physical_device;
     VkQueue graphics_queue;
     VkDescriptorPool descriptor_pool;
+    VkRenderPass render_pass;
+    uint32_t render_subpass;
 };
 struct FrameInfo {
     VkCommandPool command_pool;
+    VkCommandBuffer command_buffer;
 };
 #else
 struct DeviceInfo {};
