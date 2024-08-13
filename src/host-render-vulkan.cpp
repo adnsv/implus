@@ -428,9 +428,9 @@ auto GetDeviceInfo() -> Render::DeviceInfo
         .device = g_Device,
         .physical_device = g_PhysicalDevice,
         .graphics_queue = g_Queue,
+        .pipeline_cache = g_PipelineCache,
         .descriptor_pool = g_DescriptorPool,
         .render_pass = wd->RenderPass,
-        .render_subpass = 
     };
 }
 

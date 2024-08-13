@@ -22,6 +22,7 @@ struct DeviceInfo {
     VkDevice device;
     VkPhysicalDevice physical_device;
     VkQueue graphics_queue;
+    VkPipelineCache pipeline_cache;
     VkDescriptorPool descriptor_pool;
     VkRenderPass render_pass;
     uint32_t render_subpass;
