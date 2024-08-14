@@ -105,13 +105,14 @@ protected:
     Text::OverflowPolicy overflow_policy_ = {};
     std::optional<pt_length> overflow_width_ = {}; // in screen points
     ImFont* font_ = nullptr;
+    float font_scale_ = 1.0f;
     std::vector<LineInfo> lines_;
 
 public:
     TextBlock() {}
     TextBlock(TextBlock const&) = default;
     TextBlock(std::string_view content, ImVec2 const& align, Text::OverflowPolicy const& = {},
-        std::optional<pt_length> const& overflow_width = {}, ImFont* font = nullptr);
+        std::optional<pt_length> const& overflow_width = {}, ImFont* font = nullptr, float font_scale = 1.0f);
 
     auto Empty() const { return content_.empty(); }
 
@@ -149,9 +150,8 @@ public:
     CDBlock(std::string_view caption, std::string_view descr, ImVec2 const& align,
         CDOptions const& opts = {}, Text::CDOverflowPolicy const& op = {},
         std::optional<pt_length> const& overflow_width = {});
-    CDBlock(CD_view const& content, ImVec2 const& align,
-        CDOptions const& opts, Text::CDOverflowPolicy const& op,
-        std::optional<pt_length> const& overflow_width)
+    CDBlock(CD_view const& content, ImVec2 const& align, CDOptions const& opts,
+        Text::CDOverflowPolicy const& op, std::optional<pt_length> const& overflow_width)
         : CDBlock{content.Caption, content.Descr, align, opts, op, overflow_width}
     {
     }

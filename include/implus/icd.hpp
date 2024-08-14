@@ -114,13 +114,17 @@ struct ICD {
 
 struct CDOptions {
     Font::Resource CaptionFont = {};
+    float CaptionFontScale = 1.0f;
     Font::Resource DescrFont = {};
+    float DescrFontScale = 1.0f;
 };
 
 struct ICDOptions {
     bool WithDropdownArrow = false;
     Font::Resource CaptionFont = {};
+    float CaptionFontScale = 1.0f;
     Font::Resource DescrFont = {};
+    float DescrFontScale = 1.0f;
 };
 
 } // namespace ImPlus

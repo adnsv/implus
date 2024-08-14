@@ -116,8 +116,8 @@ auto calc_line_wrap(ImFont const& font, float font_size, float wrap_width, char 
     return calc_line_result{line_view{text, content_end, content_advance * scale}, curr};
 };
 
-auto calc_next_line(ImFont const& font, float font_size, char const* first, char const* last)
-    -> calc_line_result
+auto calc_next_line(
+    ImFont const& font, float font_size, char const* first, char const* last) -> calc_line_result
 {
     auto const scale = font_size / font.FontSize;
 
@@ -275,8 +275,8 @@ auto MeasureTextEx(ImFont* fnt, float fnt_size, std::string_view s, Text::Overfl
     return ret;
 }
 
-auto MeasureText(std::string_view s, Text::OverflowPolicy const& op, std::optional<float> const& ow)
-    -> ImVec2
+auto MeasureText(
+    std::string_view s, Text::OverflowPolicy const& op, std::optional<float> const& ow) -> ImVec2
 {
     auto ret = MeasureTextEx(nullptr, 0.0f, s, op, ow);
     return ret.size;
@@ -362,19 +362,20 @@ void IconBlock::Display(ImVec4 const& clr) const
 void IconBlock::Display() const { Display(ImGui::GetStyleColorVec4(ImGuiCol_Text)); }
 
 TextBlock::TextBlock(std::string_view content, ImVec2 const& align, Text::OverflowPolicy const& op,
-    std::optional<pt_length> const& ow, ImFont* font)
+    std::optional<pt_length> const& ow, ImFont* font, float font_scale)
     : content_{content}
     , align_{align}
     , overflow_policy_{op}
     , overflow_width_{ow}
     , font_{font}
+    , font_scale_{font_scale}
 {
     if (!content_.empty()) {
         auto prev = GImGui->Font;
         if (font_ && font_ != prev)
             ImGui::SetCurrentFont(font_);
-        auto t = MeasureTextEx(
-            GImGui->Font, GImGui->Font->FontSize, content_, overflow_policy_, overflow_width_);
+        auto t = MeasureTextEx(GImGui->Font, GImGui->Font->FontSize * font_scale_, content_,
+            overflow_policy_, overflow_width_);
         if (font_ && font_ != prev)
             ImGui::SetCurrentFont(prev);
         lines_ = std::move(t.lines);
@@ -391,8 +392,8 @@ void TextBlock::Reflow(std::optional<pt_length> const& ow)
     auto prev = GImGui->Font;
     if (font_ && font_ != prev)
         ImGui::SetCurrentFont(font_);
-    auto t = MeasureTextEx(
-        GImGui->Font, GImGui->Font->FontSize, content_, overflow_policy_, overflow_width_);
+    auto t = MeasureTextEx(GImGui->Font, GImGui->Font->FontSize * font_scale_, content_,
+        overflow_policy_, overflow_width_);
     if (font_ && font_ != prev)
         ImGui::SetCurrentFont(prev);
     lines_ = std::move(t.lines);
@@ -417,7 +418,7 @@ void TextBlock::Render(
         ImGui::PushFont(font_);
 
     auto& font = *GImGui->Font;
-    auto const font_size = GImGui->FontSize;
+    auto const font_size = GImGui->FontSize * font_scale_;
     auto const ellipsis_char_w = font_size * font.EllipsisCharStep / font.FontSize;
 
     auto first = content_.data();
@@ -503,14 +504,16 @@ CDBlock::CDBlock(std::string_view caption, std::string_view descr, ImVec2 const&
     if (caption.empty()) {
         // note: do not indent if there is no caption
         if (!descr.empty()) {
-            Descr = TextBlock{descr, {align.x, 0}, op.Descr, overflow_width, opts.DescrFont};
+            Descr = TextBlock{
+                descr, {align.x, 0}, op.Descr, overflow_width, opts.DescrFont, opts.DescrFontScale};
             Size = Descr.Size;
         }
         return;
     }
 
     if (descr.empty()) {
-        Caption = TextBlock{caption, {align.x, 0}, op.Caption, overflow_width, opts.CaptionFont};
+        Caption = TextBlock{caption, {align.x, 0}, op.Caption, overflow_width, opts.CaptionFont,
+            opts.CaptionFontScale};
         Size = Caption.Size;
         descr_offset_ = 0.0f;
     }
@@ -526,12 +529,13 @@ CDBlock::CDBlock(std::string_view caption, std::string_view descr, ImVec2 const&
     if (dw)
         dw = std::max({*dw, descr_offset_});
 
-    Caption = TextBlock{caption, {align.x, 0}, op.Caption, dw, opts.CaptionFont};
+    Caption =
+        TextBlock{caption, {align.x, 0}, op.Caption, dw, opts.CaptionFont, opts.CaptionFontScale};
 
     if (dw)
         dw = std::max(*dw, Caption.Size.x) - descr_offset_;
 
-    Descr = TextBlock{descr, {align.x, 0}, op.Descr, dw, opts.DescrFont};
+    Descr = TextBlock{descr, {align.x, 0}, op.Descr, dw, opts.DescrFont, opts.DescrFontScale};
 
     if (dw && Caption.overflow_width_) {
         *dw += descr_offset_;
@@ -641,7 +645,9 @@ ICDBlock::ICDBlock(ICD_view const& content, Content::Layout layout, ICDOptions c
 
     auto const cd_opts = CDOptions{
         .CaptionFont = opts.CaptionFont,
+        .CaptionFontScale = opts.CaptionFontScale,
         .DescrFont = opts.DescrFont,
+        .DescrFontScale = opts.DescrFontScale,
     };
 
     // remaining wrapping with for caption and description
