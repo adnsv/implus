@@ -52,12 +52,14 @@ struct GlyphInfo {
 struct Glyph {
     std::string Symbol;
     ImPlus::Font::Resource Font = {};
+    float FontScale = 1.0f;
     std::optional<ImU32> Color = {};
     Glyph(GlyphInfo const& info);
 
-    explicit Glyph(std::string const& symbol, ImPlus::Font::Resource font = {})
+    explicit Glyph(std::string const& symbol, ImPlus::Font::Resource font = {}, float font_scale = 1.0f)
         : Symbol{symbol}
         , Font{font}
+        , FontScale{font_scale}
     {
     }
     Glyph(Glyph const&) = default;
@@ -74,6 +76,11 @@ struct Glyph {
     auto WithColor(ImVec4 const& c) const -> Glyph
     {
         return WithColor(ImGui::GetColorU32(c));
+    }
+    auto Scaled(float scale) const -> Glyph {
+        auto ret = *this;
+        ret.FontScale *= scale;
+        return ret;
     }
 };
 

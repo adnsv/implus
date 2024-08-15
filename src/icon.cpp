@@ -104,8 +104,8 @@ auto Icon::Placeholder(length const& width, length const& height) -> CustomIconD
         .on_draw =
             [](ImDrawList* dl, ImVec2 const& bb_min, ImVec2 const& bb_max, ImU32 clr) {
                 dl->AddRect(bb_min, bb_max, clr);
-                auto tl = ImVec2(bb_min.x + 2, bb_min.y + 2);
-                auto br = ImVec2{bb_max.x - 2, bb_max.y - 2};
+                auto const tl = ImVec2(bb_min.x + 2, bb_min.y + 2);
+                auto const br = ImVec2{bb_max.x - 2, bb_max.y - 2};
                 dl->AddLine(tl, br, clr);
                 dl->AddLine({tl.x, br.y - 1}, {br.x, tl.y - 1}, clr);
             },
@@ -123,7 +123,7 @@ auto Icon::Measure() const -> ImVec2
         auto sz = ImGui::CalcTextSize(v->Symbol.data(), v->Symbol.data() + v->Symbol.size());
         if (v->Font)
             ImGui::PopFont();
-        return sz;
+        return sz * v->FontScale;
     }
     else if (auto p = std::get_if<builtin_content>(&content_)) {
         auto h = to_pt(p->size);
@@ -160,7 +160,9 @@ void Icon::Draw(ImDrawList* dl, ImVec2 const& pos, ImU32 clr) const
             ImGui::PushFont(v->Font);
         auto const c = v->Color ? ImGui::GetColorU32(*v->Color) : clr;
         sz = ImGui::CalcTextSize(v->Symbol.data(), v->Symbol.data() + v->Symbol.size());
-        dl->AddText(nullptr, 0.0f, pos, c, v->Symbol.data(), v->Symbol.data() + v->Symbol.size());
+        sz *= v->FontScale;
+        dl->AddText(nullptr, dl->_Data->FontSize * v->FontScale, pos, c, v->Symbol.data(),
+            v->Symbol.data() + v->Symbol.size());
         if (v->Font)
             ImGui::PopFont();
     }
