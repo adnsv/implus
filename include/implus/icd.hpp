@@ -94,13 +94,13 @@ struct ICD {
     {
     }
 
-    ICD(ImPlus::Icon const& icon, std::string const& caption) noexcept
+    ICD(ImPlus::Icon const& icon, std::string_view caption) noexcept
         : Icon{icon}
         , Caption{caption}
     {
     }
 
-    ICD(ImPlus::Icon const& icon, std::string const& caption, std::string const& descr) noexcept
+    ICD(ImPlus::Icon const& icon, std::string_view caption, std::string_view descr) noexcept
         : Icon{icon}
         , Caption{caption}
         , Descr{descr}
