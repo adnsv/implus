@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <cstdint>
 
 #if defined(IMPLUS_RENDER_DX11)
 #include <d3d11.h>
