@@ -71,7 +71,7 @@ inline auto window_from_id(SDL_WindowID id) -> Window*
         SDL_GetPointerProperty(SDL_GetWindowProperties(sdlw), "implus-wnd", nullptr));
 }
 
-static int event_watcher(void* data, SDL_Event* event)
+static SDL_bool event_watcher(void* data, SDL_Event* event)
 {
     switch (event->type) {
 
@@ -105,10 +105,10 @@ static int event_watcher(void* data, SDL_Event* event)
         }
     }
 
-    default: return 0;
+    default: return SDL_FALSE;
     }
 
-    return 0;
+    return SDL_FALSE;
 }
 
 Window::Window(InitLocation const& loc, char const* title, Attrib attr)
