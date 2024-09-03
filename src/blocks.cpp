@@ -464,6 +464,18 @@ void TextBlock::Render(
     Render(dl, bb_min, bb_max, ImGui::GetColorU32(clr));
 }
 
+void TextBlock::Render(ImDrawList* dl, ImVec2 pos, ImU32 clr32) const
+{
+    auto x = pos.x - Size.x * align_.x;
+    auto y = pos.y - Size.y * align_.y;
+    Render(dl, ImVec2{x, y}, ImVec2{x + Size.x, y + Size.y}, clr32);
+}
+
+void TextBlock::Render(ImDrawList* dl, ImVec2 pos, ImVec4 const& clr) const
+{
+    Render(dl, pos, ImGui::GetColorU32(clr));
+}
+
 void TextBlock::Display(ImVec4 const& clr, ImVec2 const& size_arg) const
 {
     auto window = ImGui::GetCurrentWindow();

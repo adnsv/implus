@@ -112,7 +112,8 @@ public:
     TextBlock() {}
     TextBlock(TextBlock const&) = default;
     TextBlock(std::string_view content, ImVec2 const& align, Text::OverflowPolicy const& = {},
-        std::optional<pt_length> const& overflow_width = {}, ImFont* font = nullptr, float font_scale = 1.0f);
+        std::optional<pt_length> const& overflow_width = {}, ImFont* font = nullptr,
+        float font_scale = 1.0f);
 
     auto Empty() const { return content_.empty(); }
 
@@ -121,6 +122,9 @@ public:
     void Render(ImDrawList* dl, ImVec2 const& bb_min, ImVec2 const& bb_max, ImU32 clr32) const;
     void Render(
         ImDrawList* dl, ImVec2 const& bb_min, ImVec2 const& bb_max, ImVec4 const& clr) const;
+
+    void Render(ImDrawList* dl, ImVec2 pos, ImU32 clr32) const;
+    void Render(ImDrawList* dl, ImVec2 pos, ImVec4 const& clr) const;
 
     void Display(ImVec4 const& clr, ImVec2 const& size_arg = {}) const;
     void Display(ImVec2 const& size_arg = {}) const;
