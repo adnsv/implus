@@ -59,6 +59,7 @@ add_library(implus STATIC
     "src/listbox.cpp"
     "src/menu.cpp"
     "src/navigation.cpp"
+    "src/pagination.cpp"
     "src/pane.cpp"
     "src/panel.cpp"
     "src/pathbox.cpp"
