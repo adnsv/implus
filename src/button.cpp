@@ -306,15 +306,14 @@ auto ICDCustomButton(ImID id, ICD_view const& content, Content::Layout layout,
         id, name_for_test_engine(content).c_str(), actual_size, padding.y, flags, draw_callback);
 }
 
-auto Button(
-    ImID id, ICD_view const& content, Sizing::XYArg const& sizing, ImGuiButtonFlags flags) -> bool
+auto Button(ImID id, ICD_view const& content, Sizing::XYArg const& sizing, ImGuiButtonFlags flags,
+    ButtonOptions const& opts) -> bool
 {
     auto lt = Style::Button::Layout();
     auto op = Style::Button::OverflowPolicy();
     auto ow = Style::Button::OverflowWidth();
 
-    auto dr =
-        ICDCustomButton(id, content, lt, ICDOptions{}, sizing, ow, op, flags, ButtonOptions{});
+    auto dr = ICDCustomButton(id, content, lt, ICDOptions{}, sizing, ow, op, flags, opts);
     return dr.Pressed;
 }
 

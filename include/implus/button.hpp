@@ -113,7 +113,7 @@ auto CustomButton(ImID id, char const* name, ImVec2 const& size, float baseline_
     -> InteractState;
 
 auto Button(ImID id, ICD_view const& content, Sizing::XYArg const& sizing = {},
-    ImGuiButtonFlags flags = ImGuiButtonFlags_None) -> bool;
+    ImGuiButtonFlags flags = ImGuiButtonFlags_None, ButtonOptions const& opts = {}) -> bool;
 
 auto BeginDropDownButton(ImID id, ICD_view const& content, Sizing::XYArg const& sizing = {},
     Placement::Options const& placement = DefaultDropdownPlacement) -> bool;
