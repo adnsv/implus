@@ -66,7 +66,7 @@ struct ButtonDemo : public DemoBase {
         // --- content ------------------
 
         ImGui::BeginChild("scrollable", {0, 0},
-            ImGuiChildFlags_Border | ImGuiChildFlags_AlwaysUseWindowPadding |
+            ImGuiChildFlags_Borders | ImGuiChildFlags_AlwaysUseWindowPadding |
                 ImGuiChildFlags_NavFlattened,
             ImGuiWindowFlags_HorizontalScrollbar);
 
@@ -393,7 +393,7 @@ struct ListBoxDemo_Simple : public DemoBase {
         // --- content -----
 
         ImGui::BeginChild("scrollable", {0, 0},
-            ImGuiChildFlags_Border | ImGuiChildFlags_AlwaysUseWindowPadding |
+            ImGuiChildFlags_Borders | ImGuiChildFlags_AlwaysUseWindowPadding |
                 ImGuiChildFlags_NavFlattened,
             ImGuiWindowFlags_HorizontalScrollbar);
 

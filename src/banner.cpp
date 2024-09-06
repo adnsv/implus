@@ -41,7 +41,7 @@ auto DisplayEx(ImID id, ICD_view const& content, colors const& clr, Flags flags)
 
     ImGui::PushStyleColor(ImGuiCol_ChildBg, clr.background);
     auto showing = ImGui::BeginChild(id, {avail.x, h},
-        ImGuiChildFlags_Border | ImGuiChildFlags_AlwaysUseWindowPadding, window_flags);
+        ImGuiChildFlags_Borders | ImGuiChildFlags_AlwaysUseWindowPadding, window_flags);
     ImGui::PopStyleColor();
 
     if (showing) {

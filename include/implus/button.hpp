@@ -75,19 +75,20 @@ enum class ButtonShape {
     PointyRight,
 };
 
+// ButtonSidebar is an additional decoration added to button frame
 struct ButtonSidebar {
     ImPlus::Side Side;
     std::optional<ImVec4> Color;
 };
 
 struct ButtonOptions {
-    bool DefaultAction = false;
+    bool DefaultAction = false; // appear with additional frame to indicate 'default' action
 
     std::optional<length> Rounded = {};
     std::optional<length_vec> Padding = {};
     InteractColorSetCallback ColorSet = {};
     std::optional<ButtonShape> Shape = ButtonShape::Regular;
-    std::optional<ButtonSidebar> Sidebar = {};
+    std::optional<ButtonSidebar> Sidebar = {}; 
 };
 
 // MakeButtonDrawCallback
@@ -107,8 +108,8 @@ auto CalcPaddedSize(ImVec2 const& inner, ImVec2 const& padding) -> ImVec2;
 // - measured_size and baseline_offset is used for placing the button with ImGui::ItemSize()
 // - actual_size is used to calculate the actual bounding box
 //
-auto CustomButton(ImID id, char const* name, ImVec2 const& measured_size, float baseline_offset,
-    ImVec2 const& actual_size, ImGuiButtonFlags flags, ButtonDrawCallback const& draw_callback)
+auto CustomButton(ImID id, char const* name, ImVec2 const& size, float baseline_offset,
+    ImGuiButtonFlags flags, ButtonDrawCallback const& draw_callback)
     -> InteractState;
 
 auto Button(ImID id, ICD_view const& content, Sizing::XYArg const& sizing = {},

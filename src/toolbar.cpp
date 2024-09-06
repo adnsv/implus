@@ -358,7 +358,7 @@ auto display_btn(toolbar_state& ts, ImID id, ICDBlock const& c, ImVec2 const& sz
     auto cb = MakeButtonDrawCallback(effective_opts, on_content);
 
     auto dr = CustomButton(
-        id, c.NameForTestEngine().c_str(), sz, baseline_offset, sz, flags, std::move(cb));
+        id, c.NameForTestEngine().c_str(), sz, baseline_offset, flags, std::move(cb));
 
     if (ImGui::IsItemHovered())
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);

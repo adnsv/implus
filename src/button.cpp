@@ -11,9 +11,8 @@
 namespace ImPlus {
 
 // note: name is used only for test_engine
-auto CustomButton(ImID id, char const* name, ImVec2 const& measured_size, float baseline_offset,
-    ImVec2 const& actual_size, ImGuiButtonFlags flags, ButtonDrawCallback const& draw_callback)
-    -> InteractState
+auto CustomButton(ImID id, char const* name, ImVec2 const& size, float baseline_offset,
+    ImGuiButtonFlags flags, ButtonDrawCallback const& draw_callback) -> InteractState
 {
     auto state = InteractState{};
 
@@ -27,8 +26,8 @@ auto CustomButton(ImID id, char const* name, ImVec2 const& measured_size, float 
         baseline_offset < window->DC.CurrLineTextBaseOffset)
         pos.y += window->DC.CurrLineTextBaseOffset - baseline_offset;
 
-    ImGui::ItemSize(measured_size, baseline_offset);
-    auto const bb = ImRect{pos, pos + actual_size};
+    ImGui::ItemSize(size, baseline_offset);
+    auto const bb = ImRect{pos, pos + size};
     if (!ImGui::ItemAdd(bb, id))
         return state;
 
@@ -41,7 +40,8 @@ auto CustomButton(ImID id, char const* name, ImVec2 const& measured_size, float 
     ImGui::RenderNavHighlight(bb, id);
 
     if (!(state.Pressed || state.Held) && g.NavId == id && !g.NavDisableHighlight) {
-        if (ImGui::Shortcut(ImGuiKey_Enter, ImGuiInputFlags_None, id) || ImGui::Shortcut(ImGuiKey_KeypadEnter, ImGuiInputFlags_None, id)) {
+        if (ImGui::Shortcut(ImGuiKey_Enter, ImGuiInputFlags_None, id) ||
+            ImGui::Shortcut(ImGuiKey_KeypadEnter, ImGuiInputFlags_None, id)) {
             state.Pressed = true;
         }
     }
@@ -211,8 +211,8 @@ inline auto render_shaped_frame(
     }
 }
 
-auto MakeButtonDrawCallback(ButtonOptions const& opts, Content::DrawCallback&& on_content)
-    -> ButtonDrawCallback
+auto MakeButtonDrawCallback(
+    ButtonOptions const& opts, Content::DrawCallback&& on_content) -> ButtonDrawCallback
 {
     return [opts, on_content = std::move(on_content)](ImGuiID id, ImDrawList* dl,
                ImVec2 const& bb_min, ImVec2 const& bb_max, InteractState const& state) {
@@ -223,7 +223,8 @@ auto MakeButtonDrawCallback(ButtonOptions const& opts, Content::DrawCallback&& o
         if (!NeedsHoverHighlight() && !disp_state.Held)
             disp_state.Hovered = false;
 
-        auto const cs = opts.ColorSet ? opts.ColorSet(disp_state) : ColorSets_RegularButton(disp_state);
+        auto const cs =
+            opts.ColorSet ? opts.ColorSet(disp_state) : ColorSets_RegularButton(disp_state);
         auto const bg_clr = ImGui::GetColorU32(cs.Background);
 
         auto const rounding = CalcFrameRounding(opts.Rounded);
@@ -301,18 +302,19 @@ auto ICDCustomButton(ImID id, ICD_view const& content, Content::Layout layout,
 
     auto draw_callback = MakeButtonDrawCallback(btn_opts, MakeContentDrawCallback(block));
 
-    return CustomButton(id, name_for_test_engine(content).c_str(), measured_size, padding.y,
-        actual_size, flags, draw_callback);
+    return CustomButton(
+        id, name_for_test_engine(content).c_str(), actual_size, padding.y, flags, draw_callback);
 }
 
-auto Button(ImID id, ICD_view const& content, Sizing::XYArg const& sizing, ImGuiButtonFlags flags)
-    -> bool
+auto Button(
+    ImID id, ICD_view const& content, Sizing::XYArg const& sizing, ImGuiButtonFlags flags) -> bool
 {
     auto lt = Style::Button::Layout();
     auto op = Style::Button::OverflowPolicy();
     auto ow = Style::Button::OverflowWidth();
 
-    auto dr = ICDCustomButton(id, content, lt, ICDOptions{}, sizing, ow, op, flags, ButtonOptions{});
+    auto dr =
+        ICDCustomButton(id, content, lt, ICDOptions{}, sizing, ow, op, flags, ButtonOptions{});
     return dr.Pressed;
 }
 
@@ -399,8 +401,8 @@ auto LinkButton(
     auto lt = Style::LinkButton::Layout();
     auto op = Style::LinkButton::OverflowPolicy();
     auto ow = Style::LinkButton::OverflowWidth();
-    auto dr = ICDCustomButton(
-        id, content, lt, ICDOptions{}, sizing, ow, op, flags, {.ColorSet = ColorSet_LinkButton});
+    auto dr = ICDCustomButton(id, content, lt, ICDOptions{}, sizing, ow, op, flags,
+        ImPlus::ButtonOptions{.ColorSet = ColorSet_LinkButton});
     if (dr.Hovered)
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
     return dr.Pressed;

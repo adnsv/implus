@@ -275,7 +275,7 @@ auto Display(ImID id, SourceCallback&& buttons, ImVec2 const& align_all)
 
         auto draw_cb = MakeButtonDrawCallback(btn_opts, MakeContentDrawCallback(en.block));
 
-        auto st = CustomButton(id, en.block.NameForTestEngine().c_str(), sz, item_padding.y, sz,
+        auto st = CustomButton(id, en.block.NameForTestEngine().c_str(), sz, item_padding.y,
             ImGuiButtonFlags_None, draw_cb);
 
         if (st.Pressed)
