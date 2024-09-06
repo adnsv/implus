@@ -6,6 +6,16 @@
 
 namespace ImPlus::Badge {
 
+auto Measure(std::string_view content, Options const& opts) -> ImVec2
+{
+    auto blk = ImPlus::TextBlock{content, {0.5f, 0.5f}, {}, {}, opts.Font};
+    auto const margin = ImPlus::to_pt<ImPlus::rounded>(Style::Badge::Margin());
+    auto const sz = ImVec2{
+        std::round(std::max(ImPlus::to_pt(Style::Badge::MinWidth()), blk.Size.x + margin.x * 2.0f)),
+        std::round(blk.Size.y + margin.y * 2.0f)};
+    return sz;
+}
+
 void Render(ImDrawList* dl, ImVec2 const& pos, std::string_view content, Options const& opts)
 {
     auto blk = ImPlus::TextBlock{content, {0.5f, 0.5f}, {}, {}, opts.Font};
@@ -21,11 +31,14 @@ void Render(ImDrawList* dl, ImVec2 const& pos, std::string_view content, Options
         .Background = ImPlus::Color::FromStyle(ImGuiCol_TabSelected),
     });
 
-    auto align = Style::Badge::Alignment();
-    auto offset = ImPlus::to_pt(Style::Badge::Offset());
+    auto align = opts.Alignment.value_or(Style::Badge::Alignment());
+    auto offset = Style::Badge::Offset();
+    if (opts.Offset)
+        offset = *opts.Offset;
+    auto delta = ImPlus::to_pt(offset);
     auto p_min = ImVec2{
-        std::round(pos.x - sz.x * align.x + offset.x),
-        std::round(pos.y - sz.y * align.y + offset.y),
+        std::round(pos.x - sz.x * align.x + delta.x),
+        std::round(pos.y - sz.y * align.y + delta.y),
     };
 
     auto p_max = p_min + sz;

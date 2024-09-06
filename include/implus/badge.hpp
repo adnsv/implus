@@ -1,11 +1,11 @@
 #pragma once
 
 #include <imgui.h>
+#include <implus/color.hpp>
 #include <implus/font.hpp>
 #include <implus/icon.hpp>
 #include <implus/length.hpp>
 #include <implus/overridable.hpp>
-#include <implus/color.hpp>
 #include <variant>
 
 namespace ImPlus::Style::Badge {
@@ -20,7 +20,12 @@ namespace ImPlus::Badge {
 struct Options {
     ImPlus::Font::Resource Font = {};
     std::optional<ImPlus::ColorSet> ColorSet = {};
+
+    std::optional<ImVec2> Alignment = {}; // overrides Style::Badge::Alignment
+    std::optional<ImVec2> Offset = {};    // overrides Style::Badge::Offset
 };
+
+auto Measure(std::string_view, Options const&) -> ImVec2;
 
 void Render(ImDrawList* dl, ImVec2 const& pos, std::string_view, Options const&);
 
