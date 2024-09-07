@@ -22,11 +22,7 @@ auto GetDeviceInfo() -> Render::DeviceInfo
 
 auto GetFrameInfo() -> Render::FrameInfo { return {}; }
 
-void SetHint(ImPlus::Render::U32Hint h, uint32_t v)
-{
-    switch (h) {
-    }
-}
+void SetHint(ImPlus::Render::U32Hint h, uint32_t v) {}
 
 static void createRenderTarget()
 {

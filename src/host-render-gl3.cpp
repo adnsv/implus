@@ -83,13 +83,13 @@ void SetupWindowHints()
     // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // 3.0+
 #endif
 
-#elif defined(IMPLUS_HOST_SDL2) || defined(IMPLUS_HOST_SDL2)
+#elif defined(IMPLUS_HOST_SDL2) || defined(IMPLUS_HOST_SDL3)
 
 #if defined(__APPLE__)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 
 #elif defined(__ANDROID__)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
@@ -117,14 +117,15 @@ void SetupWindowHints()
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+
+#else 
+
+#error Unknown Host
+
 #endif
 }
 
-void SetHint(ImPlus::Render::U32Hint h, uint32_t v)
-{
-    switch (h) {
-    }
-}
+void SetHint(ImPlus::Render::U32Hint h, uint32_t v) {}
 
 void SetupInstance(ImPlus::Host::Window& wnd) {}
 
