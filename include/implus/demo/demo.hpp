@@ -22,6 +22,7 @@
 #include "../itemizer.hpp"
 #include "../length.hpp"
 #include "../listbox.hpp"
+#include "../pagination.hpp"
 #include "../pathbox.hpp"
 #include "../splitter.hpp"
 #include "../toolbar.hpp"
@@ -602,6 +603,25 @@ struct PathboxDemo : public DemoBase {
     }
 };
 
+struct PaginationDemo : public DemoBase {
+    PaginationDemo()
+        : DemoBase{"Pagination", ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None}
+    {
+    }
+
+    ~PaginationDemo() override {}
+
+    std::size_t index = 0;
+    std::size_t count = 110;
+
+    void Display() override
+    {
+        auto c = ImPlus::Pagination::Display("##p", {0, 0}, index, count, {});
+        if (c)
+            index = *c;
+    }
+};
+
 struct TypographyDemo : public DemoBase {
     std::string label = "Hello, World!";
     std::string descr = "01234567890123456789  \nabcdefghijkl   mnopqrstuvwxyz : 123";
@@ -914,6 +934,7 @@ struct Window {
         // demo_list.push_back(std::make_unique<PropertyListDemo>());
         demo_list.push_back(std::make_unique<BannerDemo>());
         demo_list.push_back(std::make_unique<PathboxDemo>());
+        demo_list.push_back(std::make_unique<PaginationDemo>());
         demo_list.push_back(std::make_unique<TypographyDemo>());
         demo_list.push_back(std::make_unique<InputDemo>());
         demo_list.push_back(std::make_unique<DialogDemo>());
