@@ -604,6 +604,9 @@ struct PathboxDemo : public DemoBase {
 };
 
 struct PaginationDemo : public DemoBase {
+    parameter<std::size_t> n_pages = {"n_pages", 14};
+    opt_parameter<length> stretch_width = {"custom_width", 10_em, false};
+
     PaginationDemo()
         : DemoBase{"Pagination", ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None}
     {
@@ -612,11 +615,17 @@ struct PaginationDemo : public DemoBase {
     ~PaginationDemo() override {}
 
     std::size_t index = 0;
-    std::size_t count = 110;
 
     void Display() override
     {
-        auto c = ImPlus::Pagination::Display("##p", {0, 0}, index, count, {});
+        editor("N Pages", n_pages, 0, 110);
+        editor("Stretch width", stretch_width, 2_em, 30_em);
+
+        auto sz = ImVec2{0, 0};
+        if (auto v = stretch_width.get(); v)
+            sz.x = ImPlus::to_pt(*v);
+
+        auto c = ImPlus::Pagination::Display("##p", sz, index, n_pages.value, {});
         if (c)
             index = *c;
     }

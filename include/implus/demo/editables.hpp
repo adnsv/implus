@@ -158,6 +158,24 @@ inline void editor(
     }
 }
 
+inline void editor(char const* caption, parameter<std::size_t>& param, std::size_t const& min_v,
+    std::size_t const& max_v)
+{
+    caption_prefix(caption);
+
+    auto const spacing = ImGui::GetStyle().ItemSpacing.x;
+
+    auto slider_w = ImGui::GetContentRegionAvail().x - spacing;
+    slider_w = std::max(slider_w, to_pt<rounded>(3_em));
+    slider_w = std::min(slider_w, to_pt<rounded>(10_em));
+
+    ImGui::SetNextItemWidth(slider_w);
+
+    auto numeric = param.value;
+    if (ImPlus::Slider(string_id(param.id).c_str(), numeric, min_v, max_v))
+        param.value = numeric;
+}
+
 inline void editor(char const* caption, opt_parameter<length>& param, em_length const& min_em,
     em_length const& max_em)
 {

@@ -1,6 +1,7 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui_internal.h>
 
+#include <cmath>
 #include <implus/pagination.hpp>
 #include <string>
 
@@ -12,7 +13,7 @@ static auto measure_text(std::string_view s) -> ImVec2
 }
 
 static auto display_button(ImID id, ImVec2 const& pos, ImVec2 const& size,
-    std::string_view const& s, bool active, bool disabled) -> bool
+    std::string_view const& s, bool active, bool disabled, bool arrow) -> bool
 {
     ImGui::BeginDisabled(disabled);
 
@@ -20,17 +21,18 @@ static auto display_button(ImID id, ImVec2 const& pos, ImVec2 const& size,
     ImGui::ItemAdd(bb, id);
 
     bool hovered, held;
-    auto pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held, ImGuiButtonFlags_None);
+    auto pressed = ImGui::ButtonBehavior(
+        bb, id, &hovered, &held, arrow ? ImGuiButtonFlags_Repeat : ImGuiButtonFlags_None);
 
     ImGui::RenderNavHighlight(bb, id);
     auto bg_clr = uint32_t{0};
     auto fg_clr = ImGui::GetColorU32(ImGuiCol_Text);
-    if (active || pressed || (held && hovered))
+    if (pressed || (held && hovered))
         bg_clr = ImGui::GetColorU32(ImGuiCol_ButtonActive);
     else if (hovered)
         bg_clr = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
-    // else
-    //     bg_clr = ImGui::GetColorU32(ImGuiCol_Button);
+    else if (active)
+        bg_clr = ImGui::GetColorU32(ImGuiCol_Button);
 
     if (bg_clr) {
         ImGui::RenderFrame(bb.Min, bb.Max, bg_clr, true, GImGui->Style.FrameRounding);
@@ -48,12 +50,14 @@ static auto display_button(ImID id, ImVec2 const& pos, ImVec2 const& size,
     return pressed;
 }
 
-auto Display(ImID id, ImVec2 const& size_arg, std::size_t index, std::size_t count,
+auto Display(ImID id, ImVec2 const& size_arg, std::size_t current_page, std::size_t total_pages,
     Options const& opts) -> std::optional<std::size_t>
 {
     auto const ellipsis = std::string_view{"..."};
-    if (count < 1)
-        count = 1;
+    if (total_pages < 1)
+        total_pages = 1;
+    if (current_page >= total_pages)
+        current_page = total_pages - 1;
 
     auto* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
@@ -62,128 +66,130 @@ auto Display(ImID id, ImVec2 const& size_arg, std::size_t index, std::size_t cou
     auto& g = *GImGui;
     auto const& style = g.Style;
 
-    auto const em = g.FontSize;
-    auto const padding = style.FramePadding;
-    auto const min_item_width = em * 0.75f + padding.x * 2.0f;
-    auto const arrow_width = min_item_width;
-    auto const ellipsis_width = measure_text(ellipsis).x * 1.5f;
-
-    auto item_w = measure_text(std::to_string(8)).x;
-    if (count >= 1000)
-        item_w *= 3.5f;
-    else if (count >= 100)
-        item_w *= 2.75f;
-    else
-        item_w *= 2.0f;
-    item_w += padding.x * 2.0f;
-    item_w = std::max(min_item_width, item_w);
-
     auto const avail = ImGui::GetContentRegionAvail();
 
-    auto i = index;
-    if (i >= count)
-        i = 0;
+    auto const em = g.FontSize;
+    auto const padding = style.FramePadding;
+    auto const min_item_width = em * 0.9f + padding.x * 2.0f;
+    auto const arrow_width = min_item_width;
 
-    auto range_lo = std::size_t{0};
-    auto range_hi = std::size_t{0};
+    auto box_w = measure_text("8").x;
+    if (total_pages >= 10000)
+        box_w *= 4.5f;
+    else if (total_pages >= 1000)
+        box_w *= 3.5f;
+    else if (total_pages >= 100)
+        box_w *= 2.75f;
+    else
+        box_w *= 2.0f;
+    box_w += padding.x * 2.0f;
+    box_w = std::max(min_item_width, box_w);
 
-    if (count <= 1) {
-        // noop
+    auto h = size_arg.y;
+    if (size_arg.y == 0)
+        h = em + padding.y * 2.0f;
+    else if (size_arg.y < 0)
+        h = std::max(4.0f, avail.y + size_arg.y);
+
+    auto w = size_arg.x;
+    if (size_arg.x < 0) {
+        w = std::max(arrow_width * 2.0f + min_item_width + 1.0f, avail.x + size_arg.x);
     }
-    else if (count <= 5) {
-        range_lo = 0;
-        range_hi = count - 1;
+    else if (size_arg.x > 0) {
+        w = std::max(arrow_width * 2.0f + min_item_width + 1.0f, size_arg.x);
     }
     else {
-        range_lo = index;
-        range_hi = index;
-        if (index <= 1) {
-            range_lo = 0;
-            range_hi = 3;
-        }
-        else if (range_hi + 2 >= count) {
-            range_lo = count - 4;
-            range_hi = count - 1;
-        }
-        else {
-            --range_lo;
-            ++range_hi;
-        }
-    }
-
-    auto size = size_arg;
-    if (size_arg.y == 0)
-        size.y = em + padding.y * 2.0f;
-    else if (size_arg.y < 0)
-        size.y = std::max(4.0f, avail.y + size_arg.y);
-
-    if (size_arg.x < 0) {
-        size.x = std::max(4.0f, avail.x + size_arg.x);
-    }
-    else if (size_arg.x == 0) {
-        size.x = arrow_width * 2.0f;
-        for (auto i = range_lo; i <= range_hi; ++i)
-            size.x += item_w;
-
-        if (range_lo > 0) {
-            size.x += item_w;
-        }
-
-        if (range_hi + 1 < count) {
-            size.x += item_w;
-        }
-
-        if (range_lo > 1 || range_hi + 2 < count)
-            size.x += ellipsis_width * 2.0f;
+        // auto-size
+        w = arrow_width * 2.0f + std::min(total_pages, std::size_t(11)) * box_w + 1.0f;
     }
 
     auto pos = window->DC.CursorPos;
-    ImGui::ItemSize(size, padding.y);
-    auto const bb = ImRect{pos, pos + size};
+    ImGui::ItemSize({w, h}, padding.y);
+    auto const bb = ImRect{pos, pos + ImVec2{w, h}};
 
     ImGui::PushID(id);
 
     auto x = pos.x;
 
+    //window->DrawList->AddRect(pos, pos + ImVec2{w + 1, h + 1}, 0xff00ffff);
+
     auto clicked = std::optional<std::size_t>{};
     auto make_item = [&](std::size_t page_index) {
-        if (display_button(page_index + 1, {x, pos.y}, {item_w, size.y},
-                std::to_string(page_index + 1), index == page_index, false))
+        if (display_button(page_index + 1, {x, pos.y}, {box_w, h}, std::to_string(page_index + 1),
+                current_page == page_index, false, false))
             clicked = page_index;
-        x += item_w;
+        x += box_w;
     };
 
-    auto make_ellipsis = [&](bool double_width) {
-        window->DrawList->AddText(
-            {x + (double_width ? ellipsis_width * 0.5f : 0.0f), pos.y + padding.y},
-            ImGui::GetColorU32(ImGuiCol_Text), ellipsis.data(), ellipsis.data() + ellipsis.size());
-        x += ellipsis_width;
-        if (double_width)
-            x += ellipsis_width;
+    auto make_text = [&](std::string_view s) {
+        auto text_w = measure_text(s).x;
+        window->DrawList->AddText({x + 0.5f * (box_w - text_w), pos.y + padding.y},
+            ImGui::GetColorU32(ImGuiCol_Text), s.data(), s.data() + s.size());
+        x += box_w;
     };
 
-    if (display_button("-1", pos, {arrow_width, size.y}, "<", false, index <= 0) && index > 0)
-        clicked = index - 1;
+    if (display_button("-1", pos, {arrow_width, h}, "<", false, current_page <= 0, true) &&
+        current_page > 0)
+        clicked = current_page - 1;
     x += arrow_width;
 
-    auto const ellipsis_before = range_lo > 1;
-    auto const ellipsis_after = range_hi + 2 < count;
+    w = std::max(box_w, w - arrow_width * 2.0f);
 
-    if (range_lo > 0)
-        make_item(0);
-    if (ellipsis_before)
-        make_ellipsis(!ellipsis_after);
-    for (auto i = range_lo; i <= range_hi; ++i) {
-        make_item(i);
+    auto avail_boxes = static_cast<std::size_t>(w / box_w);
+    if (avail_boxes >= total_pages) {
+        // If everything fits, just display all pages
+        box_w = w / total_pages;
+        for (std::size_t i = 0; i < total_pages; ++i)
+            make_item(i);
     }
-    if (ellipsis_after)
-        make_ellipsis(!ellipsis_before);
-    if (range_hi + 1 < count)
-        make_item(count - 1);
+    else if (avail_boxes < 5) {
+        box_w = w;
+        make_text(std::to_string(current_page + 1));
+    }
+    else {
+        // Fit with ellipsis
+        if ((avail_boxes & 0x01) == 0x00)
+            --avail_boxes;
 
-    if (display_button("+1", {x, pos.y}, {arrow_width, size.y}, ">", false, index + 1 >= count) &&
-        (index + 1 < count)) {
-        clicked = index + 1;
+        box_w = w / avail_boxes;
+
+        auto side_pages = avail_boxes > 4 ? (avail_boxes - 4) / 2 : 0;
+
+        auto start_page = std::size_t(1);
+        if (current_page > side_pages) {
+            start_page = current_page - side_pages;
+            if (start_page == 2)
+                start_page = 1;
+        }
+
+        auto end_page = start_page + avail_boxes - 3;
+        if (end_page + 1 >= total_pages) {
+            end_page = total_pages - 2;
+            start_page = end_page - avail_boxes + 3;
+            if (start_page > 1)
+                ++start_page;
+        }
+        else {
+            if (start_page > 1)
+                --end_page;
+            if (end_page + 1 < total_pages)
+                --end_page;
+        }
+
+        make_item(0);
+        if (start_page > 1)
+            make_text(ellipsis);
+        for (auto i = start_page; i <= end_page; ++i)
+            make_item(i);
+        if (end_page < total_pages - 2)
+            make_text(ellipsis);
+        make_item(total_pages - 1);
+    }
+
+    if (display_button("+1", {x, pos.y}, {arrow_width, h}, ">", false,
+            current_page + 1 >= total_pages, true) &&
+        (current_page + 1 < total_pages)) {
+        clicked = current_page + 1;
     }
 
     ImGui::PopID();
