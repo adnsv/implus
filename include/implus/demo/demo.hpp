@@ -22,6 +22,7 @@
 #include "../itemizer.hpp"
 #include "../length.hpp"
 #include "../listbox.hpp"
+#include "../pagination.hpp"
 #include "../pathbox.hpp"
 #include "../splitter.hpp"
 #include "../toolbar.hpp"
@@ -602,6 +603,34 @@ struct PathboxDemo : public DemoBase {
     }
 };
 
+struct PaginationDemo : public DemoBase {
+    parameter<std::size_t> n_pages = {"n_pages", 14};
+    opt_parameter<length> stretch_width = {"custom_width", 10_em, false};
+
+    PaginationDemo()
+        : DemoBase{"Pagination", ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None}
+    {
+    }
+
+    ~PaginationDemo() override {}
+
+    std::size_t index = 0;
+
+    void Display() override
+    {
+        editor("N Pages", n_pages, 0, 110);
+        editor("Stretch width", stretch_width, 2_em, 30_em);
+
+        auto sz = ImVec2{0, 0};
+        if (auto v = stretch_width.get(); v)
+            sz.x = ImPlus::to_pt(*v);
+
+        auto c = ImPlus::Pagination::Display("##p", sz, index, n_pages.value, {});
+        if (c)
+            index = *c;
+    }
+};
+
 struct TypographyDemo : public DemoBase {
     std::string label = "Hello, World!";
     std::string descr = "01234567890123456789  \nabcdefghijkl   mnopqrstuvwxyz : 123";
@@ -914,6 +943,7 @@ struct Window {
         // demo_list.push_back(std::make_unique<PropertyListDemo>());
         demo_list.push_back(std::make_unique<BannerDemo>());
         demo_list.push_back(std::make_unique<PathboxDemo>());
+        demo_list.push_back(std::make_unique<PaginationDemo>());
         demo_list.push_back(std::make_unique<TypographyDemo>());
         demo_list.push_back(std::make_unique<InputDemo>());
         demo_list.push_back(std::make_unique<DialogDemo>());
