@@ -604,8 +604,12 @@ struct PathboxDemo : public DemoBase {
 };
 
 struct PaginationDemo : public DemoBase {
+    parameter<ImPlus::Pagination::Placement> horz_placement = {
+        "placement", ImPlus::Pagination::Placement::Near};
+    parameter<std::size_t> limit_boxes = {"limit_boxes", 11};
     parameter<std::size_t> n_pages = {"n_pages", 14};
-    opt_parameter<length> stretch_width = {"custom_width", 10_em, false};
+    opt_parameter<length> width = {"custom_width", 10_em, false};
+    std::size_t index = 0;
 
     PaginationDemo()
         : DemoBase{"Pagination", ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None}
@@ -614,18 +618,23 @@ struct PaginationDemo : public DemoBase {
 
     ~PaginationDemo() override {}
 
-    std::size_t index = 0;
-
     void Display() override
     {
+        editor("Horz Placement", horz_placement);
+        editor("Limit Box Count", limit_boxes, 5, 25);
         editor("N Pages", n_pages, 0, 110);
-        editor("Stretch width", stretch_width, 2_em, 30_em);
+        editor("Width", width, 2_em, 30_em);
+
+        auto opts = ImPlus::Pagination::Options{
+            .HorzPlacement = horz_placement.value,
+            .LimitBoxCount = limit_boxes.value,
+        };
 
         auto sz = ImVec2{0, 0};
-        if (auto v = stretch_width.get(); v)
+        if (auto v = width.get(); v)
             sz.x = ImPlus::to_pt(*v);
 
-        auto c = ImPlus::Pagination::Display("##p", sz, index, n_pages.value, {});
+        auto c = ImPlus::Pagination::Display("##p", sz, index, n_pages.value, opts);
         if (c)
             index = *c;
     }

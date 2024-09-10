@@ -13,6 +13,7 @@
 #include "../text.hpp"
 #include "../toggler.hpp"
 #include "../toolbar.hpp"
+#include "../pagination.hpp"
 
 namespace ImPlus::Demo {
 
@@ -63,6 +64,14 @@ inline void editor(char const* caption, parameter<Axis>& param)
     auto v = std::size_t(param.value);
     if (ImPlus::MultiToggler(string_id(param.id).c_str(), {"Horz", "Vert"}, v))
         param.value = Axis(v);
+}
+
+inline void editor(char const* caption, parameter<Pagination::Placement>& param)
+{
+    caption_prefix(caption);
+    auto v = std::size_t(param.value);
+    if (ImPlus::MultiToggler(string_id(param.id).c_str(), {"Near", "Center", "Far", "Stretch"}, v))
+        param.value = Pagination::Placement(v);
 }
 
 inline void editor(char const* caption, parameter<Content::Layout>& param)

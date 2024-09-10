@@ -73,6 +73,8 @@ auto Display(ImID id, ImVec2 const& size_arg, std::size_t current_page, std::siz
     auto const min_item_width = em * 0.9f + padding.x * 2.0f;
     auto const arrow_width = min_item_width;
 
+    auto const max_box_count = std::max(std::size_t(5), opts.LimitBoxCount);
+
     auto box_w = measure_text("8").x;
     if (total_pages >= 10000)
         box_w *= 4.5f;
@@ -100,7 +102,7 @@ auto Display(ImID id, ImVec2 const& size_arg, std::size_t current_page, std::siz
     }
     else {
         // auto-size
-        w = arrow_width * 2.0f + std::min(total_pages, std::size_t(11)) * box_w + 1.0f;
+        w = arrow_width * 2.0f + std::min(total_pages, max_box_count) * box_w + 1.0f;
     }
 
     auto pos = window->DC.CursorPos;
@@ -111,7 +113,7 @@ auto Display(ImID id, ImVec2 const& size_arg, std::size_t current_page, std::siz
 
     auto x = pos.x;
 
-    //window->DrawList->AddRect(pos, pos + ImVec2{w + 1, h + 1}, 0xff00ffff);
+    // window->DrawList->AddRect(pos, pos + ImVec2{w + 1, h + 1}, 0xff00ffff);
 
     auto clicked = std::optional<std::size_t>{};
     auto make_item = [&](std::size_t page_index) {
@@ -128,31 +130,46 @@ auto Display(ImID id, ImVec2 const& size_arg, std::size_t current_page, std::siz
         x += box_w;
     };
 
-    if (display_button("-1", pos, {arrow_width, h}, "<", false, current_page <= 0, true) &&
+    w = std::max(box_w, w - arrow_width * 2.0f);
+    auto avail_boxes = std::min(max_box_count, static_cast<std::size_t>(w / box_w));
+
+    auto display_boxes = std::size_t{0};
+    if (avail_boxes >= total_pages) {
+        display_boxes = total_pages;
+    }
+    else if (avail_boxes < 5) {
+        display_boxes = 1;
+    }
+    else {
+        if ((avail_boxes & 0x01) == 0x00)
+            --avail_boxes;
+        display_boxes = avail_boxes;
+    }
+
+    if (auto best_w = box_w * display_boxes; best_w < w) {
+        switch (opts.HorzPlacement) {
+        case Placement::Far: x += w - best_w; break;
+        case Placement::Center: x += (w - best_w) * 0.5f; break;
+        case Placement::Stretch: box_w = w / display_boxes;
+        default:;
+        }
+    }
+
+    if (display_button("-1", {x, pos.y}, {arrow_width, h}, "<", false, current_page <= 0, true) &&
         current_page > 0)
         clicked = current_page - 1;
     x += arrow_width;
 
-    w = std::max(box_w, w - arrow_width * 2.0f);
-
-    auto avail_boxes = static_cast<std::size_t>(w / box_w);
     if (avail_boxes >= total_pages) {
         // If everything fits, just display all pages
-        box_w = w / total_pages;
         for (std::size_t i = 0; i < total_pages; ++i)
             make_item(i);
     }
     else if (avail_boxes < 5) {
-        box_w = w;
         make_text(std::to_string(current_page + 1));
     }
     else {
         // Fit with ellipsis
-        if ((avail_boxes & 0x01) == 0x00)
-            --avail_boxes;
-
-        box_w = w / avail_boxes;
-
         auto side_pages = avail_boxes > 4 ? (avail_boxes - 4) / 2 : 0;
 
         auto start_page = std::size_t(1);
