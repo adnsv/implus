@@ -57,9 +57,8 @@ inline auto Content = overridable<ImVec4>{[] {
 namespace Color::Background {
 inline auto Regular = overridable<ImVec4>{ImVec4{0, 0, 0, 0}}; // no regular background
 inline auto Hovered = overridable<ImVec4>{ImVec4{0, 0, 0, 0}}; // no hovered background
-inline auto Active = overridable<ImVec4>{[] {
-    return ImPlus::Color::ModulateAlpha(ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive), 0.25f);
-}};
+inline auto Active = overridable<ImVec4>{
+    [] { return ImPlus::Color::ModulateAlpha(ImPlus::Color::FromStyle(ImGuiCol_ButtonActive), 0.25f); }};
 } // namespace Color::Background
 } // namespace LinkButton
 
@@ -88,7 +87,7 @@ struct ButtonOptions {
     std::optional<length_vec> Padding = {};
     InteractColorSetCallback ColorSet = {};
     std::optional<ButtonShape> Shape = ButtonShape::Regular;
-    std::optional<ButtonSidebar> Sidebar = {}; 
+    std::optional<ButtonSidebar> Sidebar = {};
 };
 
 // MakeButtonDrawCallback
@@ -109,8 +108,7 @@ auto CalcPaddedSize(ImVec2 const& inner, ImVec2 const& padding) -> ImVec2;
 // - actual_size is used to calculate the actual bounding box
 //
 auto CustomButton(ImID id, char const* name, ImVec2 const& size, float baseline_offset,
-    ImGuiButtonFlags flags, ButtonDrawCallback const& draw_callback)
-    -> InteractState;
+    ImGuiButtonFlags flags, ButtonDrawCallback const& draw_callback) -> InteractState;
 
 auto Button(ImID id, ICD_view const& content, Sizing::XYArg const& sizing = {},
     ImGuiButtonFlags flags = ImGuiButtonFlags_None, ButtonOptions const& opts = {}) -> bool;
