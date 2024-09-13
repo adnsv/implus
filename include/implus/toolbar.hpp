@@ -10,15 +10,6 @@
 
 #include <imgui.h>
 
-namespace ImPlus::Toolbar {
-// default button appearance
-enum ButtonAppearance {
-    Regular,
-    Flat,
-    Transparent,
-};
-} // namespace ImPlus::Toolbar
-
 namespace ImPlus::Style::Toolbar {
 
 namespace Horz {
@@ -48,7 +39,7 @@ inline auto Thickness = overridable<length>(1_pt);
 namespace Button {
 
 inline auto Appearance =
-    overridable<ImPlus::Toolbar::ButtonAppearance>(ImPlus::Toolbar::ButtonAppearance::Flat);
+    overridable<ImPlus::ButtonAppearance>(ImPlus::ButtonAppearance::Flat);
 
 } // namespace Button
 

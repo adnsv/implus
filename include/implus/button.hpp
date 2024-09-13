@@ -21,6 +21,7 @@ namespace ImPlus {
 
 namespace Style {
 
+// ImPlus::Style::Button
 namespace Button {
 inline auto OverflowPolicy =
     overridable<Text::CDOverflowPolicy>({Text::OverflowNone, Text::OverflowNone});
@@ -34,12 +35,14 @@ inline auto Layout = overridable<Content::Layout>{Content::Layout::HorzCenter};
 
 }; // namespace Button
 
+// ImPlus::Style::LinkButton
 namespace LinkButton {
 inline auto OverflowPolicy =
     overridable<Text::CDOverflowPolicy>({Text::OverflowWrap, Text::OverflowWrap});
 inline auto OverflowWidth = overridable<std::optional<length>>{};
 inline auto Layout = overridable<Content::Layout>{Content::Layout::HorzNear};
 
+// ImPlus::Style::LinkButton::Color
 namespace Color {
 inline auto Content = overridable<ImVec4>{[] {
     auto txt_clr = ImGui::GetStyleColorVec4(ImGuiCol_Text);
@@ -54,11 +57,13 @@ inline auto Content = overridable<ImVec4>{[] {
 
 } // namespace Color
 
+// ImPlus::Style::LinkButton::Color::Background
 namespace Color::Background {
 inline auto Regular = overridable<ImVec4>{ImVec4{0, 0, 0, 0}}; // no regular background
 inline auto Hovered = overridable<ImVec4>{ImVec4{0, 0, 0, 0}}; // no hovered background
-inline auto Active = overridable<ImVec4>{
-    [] { return ImPlus::Color::ModulateAlpha(ImPlus::Color::FromStyle(ImGuiCol_ButtonActive), 0.25f); }};
+inline auto Active = overridable<ImVec4>{[] {
+    return ImPlus::Color::ModulateAlpha(ImPlus::Color::FromStyle(ImGuiCol_ButtonActive), 0.25f);
+}};
 } // namespace Color::Background
 } // namespace LinkButton
 
@@ -67,6 +72,16 @@ inline auto Active = overridable<ImVec4>{
 // ButtonDrawCallback draws everyting related to button visual representation
 using ButtonDrawCallback = std::function<void(
     ImGuiID id, ImDrawList* dl, ImVec2 const& bb_min, ImVec2 const& bb_max, InteractState const&)>;
+
+enum class ButtonAppearance {
+    Regular,
+    Flat,
+    Link,
+    Transparent,
+};
+
+auto GetButtonColors(ButtonAppearance appearance, bool selected) -> InteractColorSetCallback;
+
 
 enum class ButtonShape {
     Regular,

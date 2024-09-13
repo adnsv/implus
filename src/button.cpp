@@ -56,6 +56,96 @@ auto CustomButton(ImID id, char const* name, ImVec2 const& size, float baseline_
     return state;
 }
 
+static auto regular_button_regular_colors(InteractState const& st) -> ColorSet
+{
+    return ColorSet{
+        .Content = Color::FromStyle(ImGuiCol_Text),
+        .Background = st.Held || st.Hovered ? Color::FromStyle(ImGuiCol_ButtonActive)
+                      : st.Hovered          ? Color::FromStyle(ImGuiCol_ButtonHovered)
+                                            : Color::FromStyle(ImGuiCol_Button),
+    };
+}
+
+static auto regular_button_selected_colors(InteractState const& st) -> ColorSet
+{
+    return ColorSet{
+        .Content = Color::FromStyle(ImGuiCol_Text),
+        .Background = Color::FromStyle(ImGuiCol_ButtonActive),
+    };
+}
+
+static auto flat_button_regular_colors(InteractState const& st) -> ColorSet
+{
+    return ColorSet{
+        .Content = Color::FromStyle(ImGuiCol_Text),
+        .Background = st.Held && st.Hovered ? Color::FromStyle(ImGuiCol_ButtonActive)
+                      : st.Hovered
+                          ? Color::ModulateAlpha(Color::FromStyle(ImGuiCol_ButtonHovered), 0.5f)
+                          : ImVec4{0, 0, 0, 0},
+    };
+}
+
+static auto flat_button_selected_colors(InteractState const& st) -> ColorSet
+{
+    return ColorSet{
+        .Content = Color::FromStyle(ImGuiCol_Text),
+        .Background = Color::FromStyle(ImGuiCol_ButtonActive),
+    };
+}
+
+static auto link_button_regular_colors(InteractState const& st) -> ColorSet
+{
+    return ColorSet{
+        .Content = Style::LinkButton::Color::Content(),
+        .Background = st.Held && st.Hovered ? Style::LinkButton::Color::Background::Active()
+                      : st.Hovered          ? Style::LinkButton::Color::Background::Hovered()
+                                            : Style::LinkButton::Color::Background::Regular(),
+    };
+}
+
+static auto link_button_selected_colors(InteractState const& st) -> ColorSet
+{
+    return ColorSet{
+        .Content = Style::LinkButton::Color::Content(),
+        .Background = Style::LinkButton::Color::Background::Active(),
+    };
+}
+
+static auto transparent_button_regular_colors(InteractState const& st) -> ColorSet
+{
+    return ColorSet{
+        .Content = st.Held || st.Hovered
+                       ? Color::FromStyle(ImGuiCol_Text)
+                       : Color::ModulateAlpha(Color::FromStyle(ImGuiCol_Text), 0.7f),
+        .Background = ImVec4{0, 0, 0, 0},
+    };
+}
+
+static auto transparent_button_selected_colors(InteractState const& st) -> ColorSet
+{
+    return ColorSet{
+        .Content = Color::FromStyle(ImGuiCol_Text),
+        .Background = {0, 0, 0, 0},
+    };
+}
+
+auto GetButtonColors(ButtonAppearance appearance, bool selected) -> InteractColorSetCallback
+{
+    switch (appearance) {
+    case ButtonAppearance::Flat: {
+        return selected ? flat_button_selected_colors : flat_button_regular_colors;
+    } break;
+    case ButtonAppearance::Link: {
+        return selected ? link_button_selected_colors : link_button_regular_colors;
+    } break;
+    case ButtonAppearance::Transparent: {
+        return selected ? transparent_button_selected_colors : transparent_button_regular_colors;
+    } break;
+    default: // ButtonAppearance::Regular
+        return selected ? regular_button_selected_colors : regular_button_regular_colors;
+    }
+}
+
 inline auto make_pointy_shaped_path(
     ImDrawList* dl, float l, float t, float r, float b, float rounding, ImGuiDir dir)
 {
