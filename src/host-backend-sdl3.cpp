@@ -71,7 +71,7 @@ inline auto window_from_id(SDL_WindowID id) -> Window*
         SDL_GetPointerProperty(SDL_GetWindowProperties(sdlw), "implus-wnd", nullptr));
 }
 
-static SDL_bool event_watcher(void* data, SDL_Event* event)
+static bool event_watcher(void* data, SDL_Event* event)
 {
     switch (event->type) {
 
@@ -105,10 +105,10 @@ static SDL_bool event_watcher(void* data, SDL_Event* event)
         }
     }
 
-    default: return SDL_FALSE;
+    default: return false;
     }
 
-    return SDL_FALSE;
+    return false;
 }
 
 Window::Window(InitLocation const& loc, char const* title, Attrib attr)
@@ -117,7 +117,7 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
     ++window_counter_;
 
     if (!sdl_inited) {
-        if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMEPAD) != 0) {
+        if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD) != 0) {
             std::fprintf(stderr, "SDL Init Error: %s\n", SDL_GetError());
         }
         sdl_inited = true;
@@ -430,7 +430,7 @@ void Window::perform_locate(Location const& loc, bool constrain_to_monitor)
         auto area = getMonitorArea(mon);
 
         // hide decorations
-        SDL_SetWindowFullscreen(w, SDL_TRUE);
+        SDL_SetWindowFullscreen(w, true);
 
         if (!visible && want_maximized)
             SDL_MaximizeWindow(w);
@@ -441,7 +441,7 @@ void Window::perform_locate(Location const& loc, bool constrain_to_monitor)
     else if (fullscreen && !want_fullscreen) {
         fullscreen = false;
 
-        SDL_SetWindowFullscreen(w, SDL_FALSE);
+        SDL_SetWindowFullscreen(w, false);
 
         if (want_maximized) {
             SDL_MaximizeWindow(w);
@@ -511,7 +511,7 @@ void Window::handleResize(Size const& wh)
 void Window::EnableDropFiles(bool allow)
 {
     auto _handle = native_wnd(this->handle_);
-    SDL_SetEventEnabled(SDL_EVENT_DROP_FILE, allow ? SDL_TRUE : SDL_FALSE);
+    SDL_SetEventEnabled(SDL_EVENT_DROP_FILE, allow);
 }
 
 auto ConstrainToMonitor(Window::Bounds const& b) -> Window::Bounds
