@@ -19,6 +19,15 @@
 
 namespace ImPlus {
 
+enum class ButtonAppearance {
+    Regular,
+    Flat,
+    Link,
+    Transparent,
+};
+
+auto GetButtonColors(ButtonAppearance appearance, bool selected) -> InteractColorSetCallback;
+
 namespace Style {
 
 // ImPlus::Style::Button
@@ -27,6 +36,7 @@ inline auto OverflowPolicy =
     overridable<Text::CDOverflowPolicy>({Text::OverflowNone, Text::OverflowNone});
 inline auto OverflowWidth = overridable<std::optional<length>>{};
 inline auto Layout = overridable<Content::Layout>{Content::Layout::HorzCenter};
+inline auto Appearance = overridable<ButtonAppearance>{ButtonAppearance::Regular};
 
 // see also (in blocks.hpp):
 // - Style::ICD::DescrOffset
@@ -73,16 +83,6 @@ inline auto Active = overridable<ImVec4>{[] {
 using ButtonDrawCallback = std::function<void(
     ImGuiID id, ImDrawList* dl, ImVec2 const& bb_min, ImVec2 const& bb_max, InteractState const&)>;
 
-enum class ButtonAppearance {
-    Regular,
-    Flat,
-    Link,
-    Transparent,
-};
-
-auto GetButtonColors(ButtonAppearance appearance, bool selected) -> InteractColorSetCallback;
-
-
 enum class ButtonShape {
     Regular,
     PointyLeft,
@@ -100,7 +100,6 @@ struct ButtonOptions {
 
     std::optional<length> Rounded = {};
     std::optional<length_vec> Padding = {};
-    InteractColorSetCallback ColorSet = {};
     std::optional<ButtonShape> Shape = ButtonShape::Regular;
     std::optional<ButtonSidebar> Sidebar = {};
 };
@@ -111,7 +110,8 @@ struct ButtonOptions {
 // - grabs colors with the on_color() callback
 // - draws background
 //
-auto MakeButtonDrawCallback(ButtonOptions const&, Content::DrawCallback&&) -> ButtonDrawCallback;
+auto MakeButtonDrawCallback(
+    ButtonOptions const&, InteractColorSetCallback, Content::DrawCallback&&) -> ButtonDrawCallback;
 
 auto CalcFramePadding() -> ImVec2;
 auto CalcPaddedSize(ImVec2 const& inner, ImVec2 const& padding) -> ImVec2;

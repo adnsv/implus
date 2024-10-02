@@ -49,6 +49,8 @@ struct DemoBase {
 struct ButtonDemo : public DemoBase {
     opt_parameter<length> force_width = {"force_width", 10_em};
     opt_parameter<length> force_height = {"force_height", 3_em};
+    parameter<ButtonAppearance> button_appearance = {
+        "button_appearance", ButtonAppearance::Regular};
 
     ButtonDemo()
         : DemoBase{"Button", ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None}
@@ -63,6 +65,7 @@ struct ButtonDemo : public DemoBase {
         // --- property editors -----------
         editor("Force width", force_width, 2_em, 30_em);
         editor("Force height", force_height, 1_em, 20_em);
+        editor("ButtonAppearance", button_appearance);
 
         // --- content ------------------
 
@@ -79,9 +82,11 @@ struct ButtonDemo : public DemoBase {
 
         ImGui::Button("Stock ImGUI Button");
 
+        ImPlus::Style::Button::Appearance.push(button_appearance.value);
+
         ImPlus::Button(gen_id(),
             {ImPlus::Icon::Builtin::Circle, "HorzCenter Layout (default)", "With description"},
-            size_arg);
+            size_arg, ImGuiButtonFlags_None);
 
         ImPlus::Style::Button::Layout.push(Content::Layout::HorzNear);
         ImPlus::Button(gen_id(),
@@ -116,6 +121,8 @@ struct ButtonDemo : public DemoBase {
 
         ImPlus::LinkButton(gen_id(),
             {ImPlus::Icon::Builtin::Circle, "ImPlus LinkButton", "With description"}, size_arg);
+
+        ImPlus::Style::Button::Appearance.pop();
 
         ImGui::EndChild();
     }

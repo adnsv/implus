@@ -279,61 +279,6 @@ auto same(ImVec4 const& a, ImVec4 const& b)
     return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w;
 }
 
-template <ButtonAppearance Appearance, bool Selected>
-auto colorset_selector(InteractState const& st) -> ColorSet
-{
-    auto const active = st.Held && st.Hovered;
-    auto const hovered = st.Hovered;
-
-    auto cs = ColorSet{.Content = Color::FromStyle(ImGuiCol_Text), .Background = {0, 0, 0, 0}};
-
-    if constexpr (Appearance == ButtonAppearance::Regular) {
-        cs.Content = Color::FromStyle(ImGuiCol_Text);
-        if constexpr (Selected) {
-            cs.Background = Color::FromStyle(ImGuiCol_ButtonActive);
-        }
-        else {
-
-            cs.Background = active    ? Color::FromStyle(ImGuiCol_ButtonActive)
-                            : hovered ? Color::FromStyle(ImGuiCol_ButtonHovered)
-                                      : Color::FromStyle(ImGuiCol_Button);
-        }
-    }
-    else if constexpr (Appearance == ButtonAppearance::Flat) {
-        if constexpr (Selected) {
-            cs.Background = Color::FromStyle(ImGuiCol_ButtonActive);
-        }
-        else {
-            cs.Background =
-                active    ? Color::FromStyle(ImGuiCol_ButtonActive)
-                : hovered ? Color::ModulateAlpha(Color::FromStyle(ImGuiCol_ButtonHovered), 0.5f)
-                          : ImVec4{0, 0, 0, 0};
-        }
-    }
-    else if constexpr (Appearance == ButtonAppearance::Transparent) {
-        cs.Content = Color::FromStyle(ImGuiCol_Text);
-        auto bright = Selected || active || hovered;
-        if (!bright)
-            cs.Content.w *= 0.7f;
-    }
-    return cs;
-}
-
-auto choose_colorset_selector(ButtonAppearance appearance, bool selected)
-{
-    switch (appearance) {
-    case ButtonAppearance::Transparent:
-        return selected ? colorset_selector<ButtonAppearance::Transparent, true>
-                        : colorset_selector<ButtonAppearance::Transparent, false>;
-    case ButtonAppearance::Flat:
-        return selected ? colorset_selector<ButtonAppearance::Flat, true>
-                        : colorset_selector<ButtonAppearance::Flat, false>;
-    default:
-        return selected ? colorset_selector<ButtonAppearance::Regular, true>
-                        : colorset_selector<ButtonAppearance::Regular, false>;
-    }
-}
-
 auto display_btn(toolbar_state& ts, ImID id, ICDBlock const& c, ImVec2 const& sz, bool selected,
     ImGuiButtonFlags flags, ButtonOptions const& opts) -> bool
 {
@@ -349,8 +294,7 @@ auto display_btn(toolbar_state& ts, ImID id, ICDBlock const& c, ImVec2 const& sz
     auto const appearance = Style::Toolbar::Button::Appearance();
 
     auto effective_opts = opts;
-    if (!effective_opts.ColorSet)
-        effective_opts.ColorSet = choose_colorset_selector(appearance, selected);
+    auto cs = GetButtonColors(appearance, selected);
     if (!effective_opts.Padding)
         effective_opts.Padding = ts.item_padding;
 
@@ -359,7 +303,7 @@ auto display_btn(toolbar_state& ts, ImID id, ICDBlock const& c, ImVec2 const& sz
     auto on_content = [&](ImDrawList* dl, ImVec2 const& bb_min, ImVec2 const& bb_max,
                           ColorSet const& clr) { c.Render(dl, bb_min, bb_max, clr.Content); };
 
-    auto cb = MakeButtonDrawCallback(effective_opts, on_content);
+    auto cb = MakeButtonDrawCallback(effective_opts, cs, on_content);
 
     auto dr =
         CustomButton(id, c.NameForTestEngine().c_str(), sz, baseline_offset, flags, std::move(cb));

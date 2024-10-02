@@ -35,8 +35,8 @@ static auto name_for_test_engine(ICD_view const& content)
 #endif
 }
 
-auto Display(ImID id, SourceCallback&& buttons, ImVec2 const& align_all)
-    -> std::optional<std::size_t>
+auto Display(
+    ImID id, SourceCallback&& buttons, ImVec2 const& align_all) -> std::optional<std::size_t>
 {
     auto& g = *GImGui;
     auto const& style = g.Style;
@@ -270,10 +270,10 @@ auto Display(ImID id, SourceCallback&& buttons, ImVec2 const& align_all)
         auto btn_opts = ButtonOptions{
             .DefaultAction = (index == default_index),
             .Padding = item_padding,
-            .ColorSet = en.colors,
         };
 
-        auto draw_cb = MakeButtonDrawCallback(btn_opts, MakeContentDrawCallback(en.block));
+        auto draw_cb =
+            MakeButtonDrawCallback(btn_opts, en.colors, MakeContentDrawCallback(en.block));
 
         auto st = CustomButton(id, en.block.NameForTestEngine().c_str(), sz, item_padding.y,
             ImGuiButtonFlags_None, draw_cb);
@@ -288,7 +288,7 @@ auto Display(ImID id, SourceCallback&& buttons, ImVec2 const& align_all)
 
     // handle default action for modal dialogs
     if (!clicked && default_index) {
-        if (ImPlus::Dlg::IsAcceptActionKeyPressed()) 
+        if (ImPlus::Dlg::IsAcceptActionKeyPressed())
             clicked = default_index;
     }
 

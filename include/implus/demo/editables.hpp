@@ -10,10 +10,10 @@
 #include "../input.hpp"
 #include "../length.hpp"
 #include "../listbox.hpp"
+#include "../pagination.hpp"
 #include "../text.hpp"
 #include "../toggler.hpp"
 #include "../toolbar.hpp"
-#include "../pagination.hpp"
 
 namespace ImPlus::Demo {
 
@@ -89,6 +89,15 @@ inline void editor(char const* caption, parameter<ImGuiDir>& param)
     auto v = std::size_t(param.value);
     if (ImPlus::MultiToggler(string_id(param.id).c_str(), {"Left", "Right", "Up", "Down"}, v))
         param.value = ImGuiDir(v);
+}
+
+inline void editor(char const* caption, parameter<ButtonAppearance>& param)
+{
+    caption_prefix(caption);
+    auto v = std::size_t(param.value);
+    if (ImPlus::MultiToggler(
+            string_id(param.id).c_str(), {"Regular", "Flat", "Link", "Transparent"}, v))
+        param.value = ButtonAppearance(v);
 }
 
 inline void editor(char const* caption, parameter<std::optional<Axis>>& param)

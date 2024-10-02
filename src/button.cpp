@@ -301,10 +301,10 @@ inline auto render_shaped_frame(
     }
 }
 
-auto MakeButtonDrawCallback(
-    ButtonOptions const& opts, Content::DrawCallback&& on_content) -> ButtonDrawCallback
+auto MakeButtonDrawCallback(ButtonOptions const& opts, InteractColorSetCallback color_set,
+    Content::DrawCallback&& on_content) -> ButtonDrawCallback
 {
-    return [opts, on_content = std::move(on_content)](ImGuiID id, ImDrawList* dl,
+    return [opts, color_set, on_content = std::move(on_content)](ImGuiID id, ImDrawList* dl,
                ImVec2 const& bb_min, ImVec2 const& bb_max, InteractState const& state) {
         auto const bb = ImRect{bb_min, bb_max};
 
@@ -313,8 +313,7 @@ auto MakeButtonDrawCallback(
         if (!NeedsHoverHighlight() && !disp_state.Held)
             disp_state.Hovered = false;
 
-        auto const cs =
-            opts.ColorSet ? opts.ColorSet(disp_state) : ColorSets_RegularButton(disp_state);
+        auto const cs = color_set ? color_set(disp_state) : ColorSets_RegularButton(disp_state);
         auto const bg_clr = ImGui::GetColorU32(cs.Background);
 
         auto const rounding = CalcFrameRounding(opts.Rounded);
@@ -365,7 +364,7 @@ auto ICDCustomButton(ImID id, ICD_view const& content, Content::Layout layout,
     ICDOptions const& ic_opts, Sizing::XYArg const& sizing,
     std::optional<length> const& default_overflow_width,
     Text::CDOverflowPolicy const& overflow_policy, ImGuiButtonFlags flags,
-    ButtonOptions const& btn_opts) -> InteractState
+    ButtonOptions const& btn_opts, InteractColorSetCallback color_set) -> InteractState
 {
     auto& g = *GImGui;
     auto window = g.CurrentWindow;
@@ -390,10 +389,16 @@ auto ICDCustomButton(ImID id, ICD_view const& content, Content::Layout layout,
 
     auto const actual_size = Sizing::CalcActual(sizing, measured_size, region_avail);
 
-    auto draw_callback = MakeButtonDrawCallback(btn_opts, MakeContentDrawCallback(block));
+    auto draw_callback =
+        MakeButtonDrawCallback(btn_opts, color_set, MakeContentDrawCallback(block));
 
-    return CustomButton(
+    auto dr = CustomButton(
         id, name_for_test_engine(content).c_str(), actual_size, padding.y, flags, draw_callback);
+
+    if (dr.Hovered)
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+
+    return dr;
 }
 
 auto Button(ImID id, ICD_view const& content, Sizing::XYArg const& sizing, ImGuiButtonFlags flags,
@@ -403,7 +408,8 @@ auto Button(ImID id, ICD_view const& content, Sizing::XYArg const& sizing, ImGui
     auto op = Style::Button::OverflowPolicy();
     auto ow = Style::Button::OverflowWidth();
 
-    auto dr = ICDCustomButton(id, content, lt, ICDOptions{}, sizing, ow, op, flags, opts);
+    auto cs = GetButtonColors(Style::Button::Appearance(), false);
+    auto dr = ICDCustomButton(id, content, lt, ICDOptions{}, sizing, ow, op, flags, opts, cs);
     return dr.Pressed;
 }
 
@@ -423,31 +429,13 @@ auto BeginDropDownButton(ImID id, ICD_view const& content, Sizing::XYArg const& 
     auto const popup_id = ImHashStr("##DropDownPopup", 0, id);
     auto popup_open = ImGui::IsPopupOpen(popup_id, ImGuiPopupFlags_None);
 
-    auto color_callback = [&](InteractState const& st) -> ColorSet {
-        if (st.Pressed || popup_open) {
-            return ColorSet{
-                .Content = ImGui::GetStyleColorVec4(ImGuiCol_Text),
-                .Background = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive),
-            };
-        }
-        else
-            return ColorSets_RegularButton(st);
-    };
-
-    auto btn_opts = ButtonOptions{
-        .ColorSet =
-            [popup_open](ImPlus::InteractState const& st) {
-                return ColorSets_RegularButton(
-                    !popup_open ? st : ImPlus::InteractState{.Hovered = true, .Held = true});
-            },
-    };
-
     auto lt = Style::Button::Layout();
     auto op = Style::Button::OverflowPolicy();
     auto ow = Style::Button::OverflowWidth();
+    auto cs = GetButtonColors(Style::Button::Appearance(), popup_open);
 
     auto dr = ICDCustomButton("##", content, lt, ICDOptions{.WithDropdownArrow = true}, sizing, ow,
-        op, ImGuiButtonFlags_PressedOnClick | ImGuiButtonFlags_NoSetKeyOwner, btn_opts);
+        op, ImGuiButtonFlags_PressedOnClick | ImGuiButtonFlags_NoSetKeyOwner, {}, cs);
 
     ImGui::PopID();
 
@@ -476,22 +464,14 @@ auto BeginDropDownButton(ImID id, ICD_view const& content, Sizing::XYArg const& 
 
 void EndDropDownButton() { ImGui::EndPopup(); }
 
-auto ColorSet_LinkButton(InteractState const& st) -> ColorSet
-{
-    auto bg = st.Held && st.Hovered ? Style::LinkButton::Color::Background::Active()
-              : st.Hovered          ? Style::LinkButton::Color::Background::Hovered()
-                                    : Style::LinkButton::Color::Background::Regular();
-    return ColorSet{.Content = Style::LinkButton::Color::Content(), .Background = bg};
-};
-
 auto LinkButton(
     ImID id, ICD_view const& content, Sizing::XYArg const& sizing, ImGuiButtonFlags flags) -> bool
 {
     auto lt = Style::LinkButton::Layout();
     auto op = Style::LinkButton::OverflowPolicy();
     auto ow = Style::LinkButton::OverflowWidth();
-    auto dr = ICDCustomButton(id, content, lt, ICDOptions{}, sizing, ow, op, flags,
-        ImPlus::ButtonOptions{.ColorSet = ColorSet_LinkButton});
+    auto dr = ICDCustomButton(id, content, lt, ICDOptions{}, sizing, ow, op, flags, {},
+        GetButtonColors(ButtonAppearance::Link, false));
     if (dr.Hovered)
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
     return dr.Pressed;
