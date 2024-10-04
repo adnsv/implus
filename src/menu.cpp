@@ -256,7 +256,8 @@ auto MenuItem(ImPlus::ImID const& id, ImPlus::Icon const& icon, std::string_view
 
                     if (selected) {
                         auto x = bb_min.x + offsets->OffsetMark + stretch_w + g.FontSize * 0.40f;
-                        auto y = bb_min.y + g.FontSize * 0.134f * 0.5f;
+                        auto h = g.FontSize * 0.866f;
+                        auto y = (bb_min.y + bb_max.y - h) * 0.5f;
                         ImGui::RenderCheckMark(
                             dl, {x, y}, ImGui::GetColorU32(cs.Content), g.FontSize * 0.866f);
                     }
