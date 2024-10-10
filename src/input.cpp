@@ -8,7 +8,8 @@
 
 namespace ImPlus {
 
-void internal::make_localized_decimal(ImGuiInputTextFlags& f) {
+void internal::make_localized_decimal(ImGuiInputTextFlags& f)
+{
     f = f | ImGuiInputTextFlags_LocalizeDecimalPoint;
 }
 
@@ -60,19 +61,18 @@ static auto callback(ImGuiInputTextCallbackData* data) -> int
 }
 
 auto InputTextMultiline(
-    ImID id, std::string& str, const ImVec2& size, ImGuiInputTextFlags flags) -> bool
+    ImID id, std::string& str, ImVec2 const& size_arg, ImGuiInputTextFlags flags) -> bool
 {
     flags |= ImGuiInputTextFlags_CallbackResize;
     auto data = callback_data{str};
 
     ImGui::PushID(id);
     auto const r = ImGui::InputTextMultiline(
-        "", const_cast<char*>(str.data()), str.capacity() + 1, size, flags, callback, &data);
-    auto const input_id = GImGui->LastItemData.ID;
+        "", const_cast<char*>(str.data()), str.capacity() + 1, size_arg, flags, callback, &data);
     auto const bb = GImGui->LastItemData.Rect;
     Dlg::HandleInputField();
     ImGui::PopID();
-    BalloonTip(input_id, bb.Min, bb.Max);
+    BalloonTip(id, bb.Min, bb.Max);
     return r;
 }
 
@@ -108,20 +108,26 @@ auto handleContextPopup(ImGuiID input_id, ImGuiInputTextFlags flags)
 }
 #endif
 
-auto InputTextWithHint(
-    ImID id, const char* hint, std::string& str, ImGuiInputTextFlags flags) -> bool
+auto InputTextWithHint(ImID id, const char* hint, std::string& str, ImVec2 const& size_arg,
+    ImGuiInputTextFlags flags) -> bool
 {
     flags |= ImGuiInputTextFlags_CallbackResize;
     auto data = callback_data{str};
     ImGui::PushID(id);
-    auto const r = ImGui::InputTextWithHint(
-        "", hint, const_cast<char*>(str.data()), str.capacity() + 1, flags, callback, &data);
-    auto const input_id = GImGui->LastItemData.ID;
+    IM_ASSERT(!(flags & ImGuiInputTextFlags_Multiline));
+    auto const r = ImGui::InputTextEx("", hint, const_cast<char*>(str.data()), str.capacity() + 1,
+        size_arg, flags, callback, &data);
     auto const bb = GImGui->LastItemData.Rect;
     Dlg::HandleInputField();
     ImGui::PopID();
-    BalloonTip(input_id, bb.Min, bb.Max);
+    BalloonTip(id, bb.Min, bb.Max);
     return r;
+}
+
+auto InputTextWithHint(
+    ImID id, const char* hint, std::string& str, ImGuiInputTextFlags flags) -> bool
+{
+    return InputTextWithHint(id, hint, str, {}, flags);
 }
 
 auto InputText(ImID id, std::string& str, ImGuiInputTextFlags flags) -> bool
@@ -134,11 +140,10 @@ auto InputTextBuffered(
 {
     ImGui::PushID(id);
     auto const r = ImGui::InputTextWithHint("", hint, buf, buf_size, flags);
-    auto const input_id = GImGui->LastItemData.ID;
     auto const bb = GImGui->LastItemData.Rect;
     Dlg::HandleInputField();
     ImGui::PopID();
-    BalloonTip(input_id, bb.Min, bb.Max);
+    BalloonTip(id, bb.Min, bb.Max);
     return r;
 }
 

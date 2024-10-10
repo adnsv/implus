@@ -40,8 +40,10 @@ auto InputTextBuffered(
 auto InputText(ImID id, std::string& str, ImGuiInputTextFlags flags = 0) -> bool;
 
 auto InputTextMultiline(
-    ImID id, std::string& str, const ImVec2& size, ImGuiInputTextFlags flags = 0) -> bool;
+    ImID id, std::string& str, ImVec2 const& size_arg, ImGuiInputTextFlags flags = 0) -> bool;
 
+auto InputTextWithHint(ImID id, const char* hint, std::string& str, ImVec2 const& size_arg,
+    ImGuiInputTextFlags flags = 0) -> bool;
 auto InputTextWithHint(
     ImID id, const char* hint, std::string& str, ImGuiInputTextFlags flags = 0) -> bool;
 
