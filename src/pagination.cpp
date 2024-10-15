@@ -18,11 +18,11 @@ static auto display_button(ImID id, ImVec2 const& pos, ImVec2 const& size,
     ImGui::BeginDisabled(disabled);
 
     auto const bb = ImRect{pos, pos + size};
+    ImGui::PushItemFlag(ImGuiItemFlags_ButtonRepeat, arrow);
     ImGui::ItemAdd(bb, id);
-
     bool hovered, held;
-    auto pressed = ImGui::ButtonBehavior(
-        bb, id, &hovered, &held, arrow ? ImGuiButtonFlags_Repeat : ImGuiButtonFlags_None);
+    auto pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
+    ImGui::PopItemFlag();
 
     ImGui::RenderNavHighlight(bb, id);
     auto bg_clr = uint32_t{0};

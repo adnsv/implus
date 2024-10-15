@@ -31,12 +31,7 @@ auto CustomButton(ImID id, char const* name, ImVec2 const& size, float baseline_
     if (!ImGui::ItemAdd(bb, id))
         return state;
 
-    auto effective_flags = flags;
-
-    if (g.CurrentItemFlags & ImGuiItemFlags_ButtonRepeat)
-        effective_flags |= ImGuiButtonFlags_Repeat;
-
-    state.Pressed = ImGui::ButtonBehavior(bb, id, &state.Hovered, &state.Held, effective_flags);
+    state.Pressed = ImGui::ButtonBehavior(bb, id, &state.Hovered, &state.Held, flags);
     ImGui::RenderNavHighlight(bb, id);
 
     if (!(state.Pressed || state.Held) && g.NavId == id && !g.NavDisableHighlight) {
