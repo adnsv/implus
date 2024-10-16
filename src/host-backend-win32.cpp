@@ -21,6 +21,9 @@
 #include <dinput.h>
 #endif
 
+#include <ShlObj.h>
+#include <Shobjidl.h>
+
 #include <algorithm>
 #include <cstddef>
 #include <string>
@@ -28,6 +31,17 @@
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
     HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+// GUID for ITipInvocation
+const IID IID_ITipInvocation = {
+    0x37c94e25, 0xd17b, 0x4e84, {0x87, 0xb8, 0x77, 0x79, 0x44, 0x0b, 0x97, 0xb5}};
+
+const CLSID CLSID_UIHostNoLaunch = {
+    0x4ce576fa, 0x83dc, 0x4f88, {0x95, 0x1c, 0x9d, 0x07, 0x82, 0x80, 0x0e, 0x7a}};
+
+struct ITipInvocation : IUnknown {
+    virtual HRESULT STDMETHODCALLTYPE Toggle(HWND wnd) = 0;
+};
 
 namespace ImPlus::Host {
 
@@ -89,19 +103,18 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
     switch (msg) {
 
-    case WM_SIZE:
-        {
-            int width = short(LOWORD(lParam));
-            int height = short(HIWORD(lParam));
-            auto w = reinterpret_cast<Window*>(::GetWindowLongPtrW(hWnd, GWLP_USERDATA));
-            if (w) {
-                if (w->OnFramebufferSize)
-                    w->OnFramebufferSize({width, height});
-                if (w->OnRefresh && AllowRefresh())
-                    w->OnRefresh();
-                notifyResize(*w, {width, height});
-            }
+    case WM_SIZE: {
+        int width = short(LOWORD(lParam));
+        int height = short(HIWORD(lParam));
+        auto w = reinterpret_cast<Window*>(::GetWindowLongPtrW(hWnd, GWLP_USERDATA));
+        if (w) {
+            if (w->OnFramebufferSize)
+                w->OnFramebufferSize({width, height});
+            if (w->OnRefresh && AllowRefresh())
+                w->OnRefresh();
+            notifyResize(*w, {width, height});
         }
+    }
         return 0;
 
     case WM_MOVE:
@@ -190,6 +203,125 @@ auto attrib_style_flags(WindowAttrib attr) -> unsigned
     return ret;
 }
 
+namespace osk {
+
+static bool LaunchTabTip()
+{
+    DWORD pid = 0;
+    auto su = STARTUPINFOW{sizeof(STARTUPINFOW)};
+    su.dwFlags = STARTF_USESHOWWINDOW;
+    su.wShowWindow = SW_HIDE;
+    auto stat = PROCESS_INFORMATION{};
+    const wchar_t* path = L"%CommonProgramW6432%\\microsoft shared\\ink\\TabTIP.EXE";
+    wchar_t buf[512];
+    ::SetEnvironmentVariableW(L"__compat_layer", L"RunAsInvoker");
+    ::ExpandEnvironmentStringsW(path, buf, 512);
+
+    if (::CreateProcessW(0, buf, 0, 0, 1, 0, 0, 0, &su, &stat)) {
+        pid = stat.dwProcessId;
+    }
+    ::CloseHandle(stat.hProcess);
+    ::CloseHandle(stat.hThread);
+    return pid;
+}
+
+static bool GetKeyboardRect(RECT* r)
+{
+    IFrameworkInputPane* inputPane = NULL;
+    HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+    if (SUCCEEDED(hr)) {
+        hr = CoCreateInstance(CLSID_FrameworkInputPane, NULL, CLSCTX_INPROC_SERVER,
+            IID_IFrameworkInputPane, (LPVOID*)&inputPane);
+        if (SUCCEEDED(hr)) {
+            hr = inputPane->Location(r);
+            if (!SUCCEEDED(hr)) {}
+            inputPane->Release();
+        }
+    }
+    CoUninitialize();
+    return SUCCEEDED(hr);
+}
+
+static bool IsKeyboardVisible()
+{
+    RECT r;
+    bool rect_ok = GetKeyboardRect(&r);
+    return rect_ok && (r.right > r.left) && (r.bottom > r.top);
+}
+
+static void ToggleKeyboardVisibility()
+{
+    ITipInvocation* pTipInvocation = NULL;
+    HRESULT hr;
+
+    // Initialize COM
+    hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+    if (FAILED(hr)) {
+        printf("Failed to initialize COM\n");
+        return;
+    }
+
+    // Create an instance of the ITipInvocation interface
+    hr = CoCreateInstance(CLSID_UIHostNoLaunch, 0, CLSCTX_INPROC_SERVER | CLSCTX_LOCAL_SERVER,
+        IID_ITipInvocation, (void**)&pTipInvocation);
+
+    if (hr == REGDB_E_CLASSNOTREG) {
+        if (LaunchTabTip()) {
+            hr = CoCreateInstance(CLSID_UIHostNoLaunch, 0,
+                CLSCTX_INPROC_SERVER | CLSCTX_LOCAL_SERVER, IID_ITipInvocation,
+                (void**)&pTipInvocation);
+        }
+        else {
+            printf("Failed to launch TabTip service\n");
+        }
+    }
+
+    if (SUCCEEDED(hr)) {
+        // Show the on-screen keyboard
+        hr = pTipInvocation->Toggle(GetDesktopWindow());
+        if (FAILED(hr)) {
+            printf("Failed to show on-screen keyboard\n");
+        }
+        // Release the interface
+        pTipInvocation->Release();
+    }
+    else {
+        printf("Failed to create ITipInvocation instance\n");
+    }
+
+    // Uninitialize COM
+    CoUninitialize();
+}
+
+} // namespace osk
+
+static void Win32_PlatformSetImeData(
+    ImGuiContext*, ImGuiViewport* viewport, ImGuiPlatformImeData* data)
+{
+    // Notify OS Input Method Editor of text input position
+    HWND hwnd = (HWND)viewport->PlatformHandleRaw;
+    if (hwnd == 0)
+        return;
+
+    //::ImmAssociateContextEx(hwnd, NULL, data->WantVisible ? IACE_DEFAULT : 0);
+    if (HIMC himc = ::ImmGetContext(hwnd)) {
+        COMPOSITIONFORM composition_form = {};
+        composition_form.ptCurrentPos.x = (LONG)data->InputPos.x;
+        composition_form.ptCurrentPos.y = (LONG)data->InputPos.y;
+        composition_form.dwStyle = CFS_FORCE_POSITION;
+        ::ImmSetCompositionWindow(himc, &composition_form);
+        CANDIDATEFORM candidate_form = {};
+        candidate_form.dwStyle = CFS_CANDIDATEPOS;
+        candidate_form.ptCurrentPos.x = (LONG)data->InputPos.x;
+        candidate_form.ptCurrentPos.y = (LONG)data->InputPos.y;
+        ::ImmSetCandidateWindow(himc, &candidate_form);
+        ::ImmReleaseContext(hwnd, himc);
+    }
+
+    //   if (osk::IsKeyboardVisible() != data->WantVisible)
+    //       osk::ToggleKeyboardVisibility();
+}
+
 Window::Window(InitLocation const& loc, char const* title, Attrib attr)
     : regular_attr_{attr}
 {
@@ -267,6 +399,10 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
         main_window_ = this;
 
         ImGui_ImplWin32_Init(hwnd);
+
+        auto& platform_io = ImGui::GetPlatformIO();
+        platform_io.Platform_SetImeDataFn = Win32_PlatformSetImeData;
+
         Render::SetupImplementation(*this);
     }
 }
