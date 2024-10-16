@@ -21,8 +21,8 @@
 #include <dinput.h>
 #endif
 
-#include <ShlObj.h>
-#include <Shobjidl.h>
+#include "win32-kbd.hpp"
+#include "win32-osk.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -31,17 +31,6 @@
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
     HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-// GUID for ITipInvocation
-const IID IID_ITipInvocation = {
-    0x37c94e25, 0xd17b, 0x4e84, {0x87, 0xb8, 0x77, 0x79, 0x44, 0x0b, 0x97, 0xb5}};
-
-const CLSID CLSID_UIHostNoLaunch = {
-    0x4ce576fa, 0x83dc, 0x4f88, {0x95, 0x1c, 0x9d, 0x07, 0x82, 0x80, 0x0e, 0x7a}};
-
-struct ITipInvocation : IUnknown {
-    virtual HRESULT STDMETHODCALLTYPE Toggle(HWND wnd) = 0;
-};
 
 namespace ImPlus::Host {
 
@@ -203,98 +192,6 @@ auto attrib_style_flags(WindowAttrib attr) -> unsigned
     return ret;
 }
 
-namespace osk {
-
-static bool LaunchTabTip()
-{
-    DWORD pid = 0;
-    auto su = STARTUPINFOW{sizeof(STARTUPINFOW)};
-    su.dwFlags = STARTF_USESHOWWINDOW;
-    su.wShowWindow = SW_HIDE;
-    auto stat = PROCESS_INFORMATION{};
-    const wchar_t* path = L"%CommonProgramW6432%\\microsoft shared\\ink\\TabTIP.EXE";
-    wchar_t buf[512];
-    ::SetEnvironmentVariableW(L"__compat_layer", L"RunAsInvoker");
-    ::ExpandEnvironmentStringsW(path, buf, 512);
-
-    if (::CreateProcessW(0, buf, 0, 0, 1, 0, 0, 0, &su, &stat)) {
-        pid = stat.dwProcessId;
-    }
-    ::CloseHandle(stat.hProcess);
-    ::CloseHandle(stat.hThread);
-    return pid;
-}
-
-static bool GetKeyboardRect(RECT* r)
-{
-    IFrameworkInputPane* inputPane = NULL;
-    HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-    if (SUCCEEDED(hr)) {
-        hr = CoCreateInstance(CLSID_FrameworkInputPane, NULL, CLSCTX_INPROC_SERVER,
-            IID_IFrameworkInputPane, (LPVOID*)&inputPane);
-        if (SUCCEEDED(hr)) {
-            hr = inputPane->Location(r);
-            if (!SUCCEEDED(hr)) {}
-            inputPane->Release();
-        }
-    }
-    CoUninitialize();
-    return SUCCEEDED(hr);
-}
-
-static bool IsKeyboardVisible()
-{
-    RECT r;
-    bool rect_ok = GetKeyboardRect(&r);
-    return rect_ok && (r.right > r.left) && (r.bottom > r.top);
-}
-
-static void ToggleKeyboardVisibility()
-{
-    ITipInvocation* pTipInvocation = NULL;
-    HRESULT hr;
-
-    // Initialize COM
-    hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-    if (FAILED(hr)) {
-        printf("Failed to initialize COM\n");
-        return;
-    }
-
-    // Create an instance of the ITipInvocation interface
-    hr = CoCreateInstance(CLSID_UIHostNoLaunch, 0, CLSCTX_INPROC_SERVER | CLSCTX_LOCAL_SERVER,
-        IID_ITipInvocation, (void**)&pTipInvocation);
-
-    if (hr == REGDB_E_CLASSNOTREG) {
-        if (LaunchTabTip()) {
-            hr = CoCreateInstance(CLSID_UIHostNoLaunch, 0,
-                CLSCTX_INPROC_SERVER | CLSCTX_LOCAL_SERVER, IID_ITipInvocation,
-                (void**)&pTipInvocation);
-        }
-        else {
-            printf("Failed to launch TabTip service\n");
-        }
-    }
-
-    if (SUCCEEDED(hr)) {
-        // Show the on-screen keyboard
-        hr = pTipInvocation->Toggle(GetDesktopWindow());
-        if (FAILED(hr)) {
-            printf("Failed to show on-screen keyboard\n");
-        }
-        // Release the interface
-        pTipInvocation->Release();
-    }
-    else {
-        printf("Failed to create ITipInvocation instance\n");
-    }
-
-    // Uninitialize COM
-    CoUninitialize();
-}
-
-} // namespace osk
-
 static void Win32_PlatformSetImeData(
     ImGuiContext*, ImGuiViewport* viewport, ImGuiPlatformImeData* data)
 {
@@ -318,8 +215,8 @@ static void Win32_PlatformSetImeData(
         ::ImmReleaseContext(hwnd, himc);
     }
 
-    //   if (osk::IsKeyboardVisible() != data->WantVisible)
-    //       osk::ToggleKeyboardVisibility();
+    if (osk::IsInputPaneVisible() != data->WantVisible)
+        osk::ToggleInputPaneVisibility();
 }
 
 Window::Window(InitLocation const& loc, char const* title, Attrib attr)
@@ -487,10 +384,6 @@ void Window::SetShouldClose(bool close) { should_close_ = close; }
 void Window::NewFrame(bool poll_events)
 {
     auto hwnd = native_wnd(this->handle_);
-
-    // todo: figure out how to handle current gl context switching
-    // if (glfwGetCurrentContext() != handle_)
-    //    glfwMakeContextCurrent(native_wnd(handle_));
 
     ImGui::SetCurrentContext(context_);
     if (poll_events) {
