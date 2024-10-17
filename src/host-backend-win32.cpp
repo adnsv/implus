@@ -281,6 +281,8 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
 
     ::SetWindowLongPtrW(hwnd, GWLP_USERDATA, LONG_PTR(this));
 
+    ::RegisterTouchWindow(hwnd, TWF_FINETOUCH | TWF_WANTPALM);
+
     if (window_counter_ == 1) {
         Render::SetupInstance(*this);
         if (Render::OnDeviceChange)
