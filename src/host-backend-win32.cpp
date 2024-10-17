@@ -72,6 +72,12 @@ static auto const wnd_class_name = L"ImPlus Host Window";
 static auto wnd_class_inited = false;
 static auto inst = ::GetModuleHandleW(NULL);
 static auto all_should_close = false;
+
+// timestamps of last keyboard inputs
+static auto last_keyboard_physical = 0.0;
+static auto last_keyboard_virtual = 0.0;
+
+// features
 static auto OnScreenKeyboardFeature = std::string{"off"};
 
 void notifyMove(Window& w, Window::Pos const& xy)
@@ -133,9 +139,39 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         if (w)
             w->SetShouldClose(true);
         return 0;
-    }
+    } break;
 
     case WM_DESTROY: ::PostQuitMessage(0); return 0;
+
+    case WM_INPUT: {
+        UINT dwSize = 0;
+        GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
+
+        auto rawData = std::vector<std::byte>(dwSize);
+        if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, rawData.data(), &dwSize,
+                sizeof(RAWINPUTHEADER)) == dwSize) {
+
+            RAWINPUT* raw = reinterpret_cast<RAWINPUT*>(rawData.data());
+            if (raw->header.dwType == RIM_TYPEKEYBOARD) {
+                RID_DEVICE_INFO deviceInfo;
+                UINT deviceInfoSize = sizeof(deviceInfo);
+                deviceInfo.cbSize = deviceInfoSize;
+                if (GetRawInputDeviceInfo(
+                        raw->header.hDevice, RIDI_DEVICEINFO, &deviceInfo, &deviceInfoSize) > 0) {
+                    if (deviceInfo.keyboard.dwType == 0 && deviceInfo.keyboard.dwSubType == 0 &&
+                        deviceInfo.keyboard.dwKeyboardMode == 0) {
+                        // likely, a virtual keyboard
+                        last_keyboard_physical = 0.0;
+                        last_keyboard_virtual = ImGui::GetTime();
+                    }
+                    else {
+                        last_keyboard_physical = ImGui::GetTime();
+                        last_keyboard_virtual = 0.0;
+                    }
+                }
+            }
+        }
+    } break;
 
     case WM_TABLET_QUERYSYSTEMGESTURESTATUS:
         // https://msdn.microsoft.com/en-us/library/windows/desktop/bb969148(v=vs.85).aspx
@@ -216,8 +252,27 @@ static void Win32_PlatformSetImeData(
     }
 
     if (OnScreenKeyboardFeature == "on") {
-        if (osk::IsInputPaneVisible() != data->WantVisible)
-            osk::ToggleInputPaneVisibility();
+        auto is_visible = osk::IsInputPaneVisible();
+        if (data->WantVisible) {
+            // want show
+            if (!is_visible) {
+                auto allow = true;
+                if (last_keyboard_physical) {
+                    // not re-showing the input-panel when typing on physical keyboard
+                    // this, may need some improvement
+                    auto dt = ImGui::GetTime() - last_keyboard_physical;
+                    if (dt < 0.2)
+                        allow = false;
+                }
+                if (allow)
+                    osk::ToggleInputPaneVisibility();
+            }
+        }
+        else {
+            // want hide
+            if (is_visible)
+                osk::ToggleInputPaneVisibility();
+        }
     }
 }
 
@@ -282,6 +337,14 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
     this->handle_ = hwnd;
 
     ::SetWindowLongPtrW(hwnd, GWLP_USERDATA, LONG_PTR(this));
+
+    auto rid = RAWINPUTDEVICE{
+        .usUsagePage = 0x01,
+        .usUsage = 0x006, // keyboard
+        .dwFlags = RIDEV_INPUTSINK,
+        .hwndTarget = hwnd,
+    };
+    ::RegisterRawInputDevices(&rid, 1, sizeof(rid));
 
     ::RegisterTouchWindow(hwnd, TWF_FINETOUCH | TWF_WANTPALM);
 
