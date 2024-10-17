@@ -520,4 +520,8 @@ auto PrimaryMonitorWorkArea() -> Window::Bounds
 
 void InvalidateDeviceObjects() { Render::InvalidateDeviceObjects(); }
 
+auto SetFeature(Feature f, std::string const& value) -> bool { return false; }
+auto GetFeature(Feature f) -> std::string { return ""; }
+auto IsFeatureSupported(Feature f) -> bool { return false; }
+
 } // namespace ImPlus::Host

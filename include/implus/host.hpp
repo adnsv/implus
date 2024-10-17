@@ -3,6 +3,7 @@
 #include <functional>
 #include <imgui.h>
 #include <optional>
+#include <string>
 #include <variant>
 
 namespace ImPlus::Host {
@@ -52,7 +53,7 @@ struct pixel_bounds {
 };
 
 struct pixel_scale {
-    float dpi = 96.0f;           // nominal dpi
+    float dpi = 96.0f;     // nominal dpi
     float fb_scale = 1.0f; // framebuffer pixel scale
 };
 
@@ -149,7 +150,7 @@ private:
 
 auto MainWindow() -> Window&;
 inline std::function<void()> OnEnterBackground;
-    inline std::function<void()> OnEnterForeground;
+inline std::function<void()> OnEnterForeground;
 
 auto ConstrainToMonitor(Window::Bounds const& b) -> Window::Bounds;
 
@@ -160,12 +161,6 @@ inline auto ConstrainToMonitor(Window::Size& size) -> Window::Size
 }
 
 auto PrimaryMonitorWorkArea() -> Window::Bounds;
-
-//namespace Interprocess {
-//auto GetIPWMHandle(Window* w) -> void*;
-//void RestoreInterprocessWindowHandle(void* iph);
-//
-//}; // namespace Interprocess
 
 void InvalidateDeviceObjects();
 
@@ -187,6 +182,14 @@ struct NativeWindowHandle {
     void* value = nullptr;
     NativeHandleType type = NativeHandleType::UNKNOWN_HANDLE_TYPE;
 };
+
+enum class Feature {
+    OnScreenKeyboard,
+};
+
+auto SetFeature(Feature f, std::string const& value) -> bool;
+auto GetFeature(Feature f) -> std::string;
+auto IsFeatureSupported(Feature f) -> bool;
 
 // GetBackendNativeHandle
 //

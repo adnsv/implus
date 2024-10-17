@@ -199,7 +199,7 @@ auto SelectableBox(ImID id, char const* name, bool selected, ImGuiSelectableFlag
     // Automatically close popups
     if (state.Pressed && (window->Flags & ImGuiWindowFlags_Popup) &&
         !(flags & ImGuiSelectableFlags_NoAutoClosePopups) &&
-        (g.LastItemData.InFlags & ImGuiItemFlags_AutoClosePopups))
+        (g.LastItemData.ItemFlags & ImGuiItemFlags_AutoClosePopups))
         ImGui::CloseCurrentPopup();
 
     if (disabled_item && !disabled_global)

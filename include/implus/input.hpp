@@ -12,7 +12,7 @@ namespace ImPlus {
 
 namespace internal {
 void make_localized_decimal(ImGuiInputTextFlags& f);
-void disable_mark_edited(ImGuiInputTextFlags& f);
+void disable_mark_edited();
 void mark_last_item_edited();
 void reload_input_text_buffer();
 auto user_decimal_char() -> char;
@@ -118,7 +118,7 @@ auto InputIntegralEx(ImID id, char const* hint, T& v, int base = 10,
     }
 
     auto flags = ImGuiInputTextFlags(ImGuiInputTextFlags_AutoSelectAll);
-    internal::disable_mark_edited(flags);
+    internal::disable_mark_edited();
 
     auto text_changed = InputTextBuffered(id, hint, buf, buf_capacity, flags);
     auto value_changed = false;
@@ -201,7 +201,7 @@ auto InputFloatingPointEx(ImID id, char const* hint, T& v,
     auto flags =
         ImGuiInputTextFlags(ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsDecimal);
     internal::make_localized_decimal(flags);
-    internal::disable_mark_edited(flags);
+    internal::disable_mark_edited();
 
     auto text_changed = InputTextBuffered(id, hint, buf, buf_capacity, flags);
     auto value_changed = false;

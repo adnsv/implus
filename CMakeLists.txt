@@ -137,7 +137,7 @@ elseif(IMPLUS_HOST_IMPL STREQUAL "SDL3")
     target_link_libraries(implus PUBLIC "SDL3::SDL3")
 
 elseif(IMPLUS_HOST_IMPL STREQUAL "WIN32")
-    target_sources(implus PUBLIC "src/host-backend-win32.cpp" "src/win32-osk.cpp" "src/win32-kbd.cpp")
+    target_sources(implus PUBLIC "src/host-backend-win32.cpp" "src/win32-osk.cpp")
     target_compile_definitions(implus PUBLIC "IMPLUS_HOST_NATIVE_WIN32")
     target_link_libraries(implus PUBLIC "SetupAPI" "Hid")
 

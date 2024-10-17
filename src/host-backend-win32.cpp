@@ -21,7 +21,6 @@
 #include <dinput.h>
 #endif
 
-#include "win32-kbd.hpp"
 #include "win32-osk.hpp"
 
 #include <algorithm>
@@ -73,6 +72,7 @@ static auto const wnd_class_name = L"ImPlus Host Window";
 static auto wnd_class_inited = false;
 static auto inst = ::GetModuleHandleW(NULL);
 static auto all_should_close = false;
+static auto OnScreenKeyboardFeature = std::string{"off"};
 
 void notifyMove(Window& w, Window::Pos const& xy)
 {
@@ -215,8 +215,10 @@ static void Win32_PlatformSetImeData(
         ::ImmReleaseContext(hwnd, himc);
     }
 
-    if (osk::IsInputPaneVisible() != data->WantVisible)
-        osk::ToggleInputPaneVisibility();
+    if (OnScreenKeyboardFeature == "on") {
+        if (osk::IsInputPaneVisible() != data->WantVisible)
+            osk::ToggleInputPaneVisibility();
+    }
 }
 
 Window::Window(InitLocation const& loc, char const* title, Attrib attr)
@@ -671,5 +673,31 @@ auto PrimaryMonitorWorkArea() -> Window::Bounds
 }
 
 void InvalidateDeviceObjects() { ImGui_ImplDX11_InvalidateDeviceObjects(); }
+
+auto SetFeature(Feature f, std::string const& value) -> bool
+{
+    switch (f) {
+    case Feature::OnScreenKeyboard:
+        if (value == "on" || value == "off") {
+            OnScreenKeyboardFeature = value;
+            return true;
+        }
+        break;
+    }
+    return false;
+}
+auto GetFeature(Feature f) -> std::string
+{
+    switch (f) {
+    case Feature::OnScreenKeyboard: return OnScreenKeyboardFeature;
+    default: return "";
+    };
+}
+auto IsFeatureSupported(Feature f) -> bool
+{
+    if (f == Feature::OnScreenKeyboard)
+        return true;
+    return false;
+}
 
 } // namespace ImPlus::Host

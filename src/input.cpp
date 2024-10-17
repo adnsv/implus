@@ -13,9 +13,9 @@ void internal::make_localized_decimal(ImGuiInputTextFlags& f)
     f = f | ImGuiInputTextFlags_LocalizeDecimalPoint;
 }
 
-void internal::disable_mark_edited(ImGuiInputTextFlags& f)
+void internal::disable_mark_edited()
 {
-    f = f | ImGuiInputTextFlags_NoMarkEdited;
+    ImGui::GetCurrentContext()->LastItemData.ItemFlags |= ImGuiItemFlags_NoMarkEdited;
 }
 
 void internal::mark_last_item_edited() { ImGui::MarkItemEdited(ImGui::GetItemID()); }
