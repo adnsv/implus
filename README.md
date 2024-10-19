@@ -16,7 +16,7 @@ brew install freetype fontconfig
 On Linux:
 
 ```bash
-sudo apt install libfontconfig-dev libfreetype-dev libpulse-dev libsndio-dev libdrm-dev libgbm-dev libasound2-dev
+sudo apt install libfontconfig-dev libfreetype-dev libpulse-dev libsndio-dev libdrm-dev libgbm-dev libasound2-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl-dev libxkbcommon-dev libusb-1.0-0-dev
 ```
 
 
@@ -29,6 +29,8 @@ sudo apt install libfontconfig-dev libfreetype-dev libpulse-dev libsndio-dev lib
 
 - Extended host backend support
   - GLFW hosts
+  - SDL2 hosts
+  - SDL3 hosts
   - Native Win32 hosts with DX11
   - Manage location and state of your host window
 
