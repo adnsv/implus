@@ -144,11 +144,11 @@ auto SelectableBox(ImID id, char const* name, bool selected, ImGuiSelectableFlag
     // Update NavId when clicking or when Hovering (this doesn't happen on most
     // widgets), so navigation can be resumed with gamepad/keyboard
     if (state.Pressed || (state.Hovered && (flags & ImGuiSelectableFlags_SetNavIdOnHover))) {
-        if (!g.NavDisableMouseHover && g.NavWindow == window &&
+        if (!g.NavHighlightItemUnderNav && g.NavWindow == window &&
             g.NavLayer == window->DC.NavLayerCurrent) {
             ImGui::SetNavID(id, window->DC.NavLayerCurrent, g.CurrentFocusScopeId,
                 ImGui::WindowRectAbsToRel(window, bb));
-            g.NavDisableHighlight = true;
+            g.NavCursorVisible = false;
         }
     }
     if (state.Pressed)

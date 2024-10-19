@@ -211,7 +211,7 @@ auto Display(
     if (Style::Buttonbar::HighlightDefault() &&
         ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
         auto active_id = g.ActiveId;
-        auto focus_id = g.NavDisableHighlight ? ImGuiID(0) : g.NavId;
+        auto focus_id = g.NavCursorVisible ? g.NavId : ImGuiID(0);
 
         for (std::size_t index = 0; index < entries.size(); ++index) {
             auto& en = entries[index];

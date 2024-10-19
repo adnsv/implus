@@ -34,7 +34,7 @@ auto CustomButton(ImID id, char const* name, ImVec2 const& size, float baseline_
     state.Pressed = ImGui::ButtonBehavior(bb, id, &state.Hovered, &state.Held, flags);
     ImGui::RenderNavHighlight(bb, id);
 
-    if (!(state.Pressed || state.Held) && g.NavId == id && !g.NavDisableHighlight) {
+    if (!(state.Pressed || state.Held) && g.NavId == id && g.NavCursorVisible) {
         if (ImGui::Shortcut(ImGuiKey_Enter, ImGuiInputFlags_None, id) ||
             ImGui::Shortcut(ImGuiKey_KeypadEnter, ImGuiInputFlags_None, id)) {
             state.Pressed = true;
@@ -251,7 +251,7 @@ inline auto render_shaped_nav_highlight(
     auto& g = *GImGui;
     if (id != g.NavId)
         return;
-    if (g.NavDisableHighlight)
+    if (!g.NavCursorVisible)
         return;
     auto* window = g.CurrentWindow;
     if (window->DC.NavHideHighlightOneFrame)
@@ -268,10 +268,9 @@ inline auto render_shaped_nav_highlight(
         add_shaped_outline(dl, display_rect.Min, display_rect.Max, shape, rounding, col, thickness);
     }
     else {
-
         auto const distance = 3.0f + thickness * 0.5f;
         display_rect.Expand(ImVec2(distance, distance));
-        bool fully_visible = window->ClipRect.Contains(display_rect);
+        auto const fully_visible = window->ClipRect.Contains(display_rect);
         if (!fully_visible)
             dl->PushClipRect(display_rect.Min, display_rect.Max);
         add_shaped_outline(dl, display_rect.Min, display_rect.Max, shape,

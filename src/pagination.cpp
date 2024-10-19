@@ -2,6 +2,7 @@
 #include <imgui_internal.h>
 
 #include <cmath>
+#include <cstdint>
 #include <implus/pagination.hpp>
 #include <string>
 
