@@ -185,8 +185,8 @@ auto SelectableBox(ImID id, char const* name, bool selected, ImGuiSelectableFlag
 
     ImGui::RenderFrame(frame.Min, frame.Max, ImGui::GetColorU32(color_set.Background), false, 0.0f);
 
-    ImGui::RenderNavHighlight(
-        bb, id, ImGuiNavHighlightFlags_Compact | ImGuiNavHighlightFlags_NoRounding);
+    ImGui::RenderNavCursor(
+        bb, id, ImGuiNavRenderCursorFlags_Compact | ImGuiNavRenderCursorFlags_NoRounding);
 
     if (span_all_columns && window->DC.CurrentColumns)
         ImGui::PopColumnsBackground();

@@ -1,5 +1,6 @@
 #include "implus/font.hpp"
 
+#include <cmath>
 #include <filesystem>
 #include <fontconfig/fontconfig.h>
 
@@ -42,7 +43,12 @@ auto LoadDefault() -> Resource
     // NSFont.systemFont returns useless name, luckily, fontconfig seems to
     // recognize "System Font" resolving it to "/System/Library/Fonts/SFNS.ttf"
     ni.Name = "System Font";
-    ni.PointSize = ni.PointSize * 96.0f / 72.0f;
+    ni.PointSize = std::round(ni.PointSize * 96.0f / 72.0f);
+#endif
+#ifdef __linux__
+    // This adjustment seems to produce font sizes that better match other apps, 
+    // at least when running Gnome Desktop.
+    ni.PointSize = std::round(ni.PointSize * 96.0f / 72.0f);
 #endif
 
     auto fi = GetFileInfo(ni.Name.c_str());

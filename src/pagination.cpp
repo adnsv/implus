@@ -25,7 +25,7 @@ static auto display_button(ImID id, ImVec2 const& pos, ImVec2 const& size,
     auto pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
     ImGui::PopItemFlag();
 
-    ImGui::RenderNavHighlight(bb, id);
+    ImGui::RenderNavCursor(bb, id);
     auto bg_clr = uint32_t{0};
     auto fg_clr = ImGui::GetColorU32(ImGuiCol_Text);
     if (pressed || (held && hovered))

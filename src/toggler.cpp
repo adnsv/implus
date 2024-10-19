@@ -67,7 +67,7 @@ auto Toggler(ImID id, bool& active, TogglerOptions const& opts) -> bool
     bool pressed = ImGui::ButtonBehavior(
         bb, id, &hovered, &held, ImGuiButtonFlags_PressedOnClickReleaseAnywhere);
 
-    ImGui::RenderNavHighlight(bb, id);
+    ImGui::RenderNavCursor(bb, id);
     auto dl = window->DrawList;
 
     auto text_clr32 = ImGui::GetColorU32(ImGuiCol_Text);
@@ -227,7 +227,7 @@ auto MultiToggler(ImID id, std::initializer_list<std::string_view> items, std::s
     bool hovered, held;
     bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
 
-    ImGui::RenderNavHighlight(bb, id);
+    ImGui::RenderNavCursor(bb, id);
 
     auto dl = window->DrawList;
     auto text_clr32 = ImGui::GetColorU32(ImGuiCol_Text);

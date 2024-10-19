@@ -32,7 +32,7 @@ auto CustomButton(ImID id, char const* name, ImVec2 const& size, float baseline_
         return state;
 
     state.Pressed = ImGui::ButtonBehavior(bb, id, &state.Hovered, &state.Held, flags);
-    ImGui::RenderNavHighlight(bb, id);
+    ImGui::RenderNavCursor(bb, id);
 
     if (!(state.Pressed || state.Held) && g.NavId == id && g.NavCursorVisible) {
         if (ImGui::Shortcut(ImGuiKey_Enter, ImGuiInputFlags_None, id) ||
@@ -261,7 +261,7 @@ inline auto render_shaped_nav_highlight(
     display_rect.ClipWith(window->ClipRect);
     const float thickness = 2.0f;
 
-    auto const col = ImGui::GetColorU32(ImGuiCol_NavHighlight);
+    auto const col = ImGui::GetColorU32(ImGuiCol_NavCursor);
     auto* dl = window->DrawList;
 
     if (compact) {

@@ -95,7 +95,7 @@ auto Display(ImID id, ImVec2 const& size_arg, std::span<Item> items, Options con
             bool hovered, held;
             pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held, flags);
 
-            ImGui::RenderNavHighlight(bb, id);
+            ImGui::RenderNavCursor(bb, id);
             auto clr = uint32_t{0};
             if (active || pressed || (held && hovered))
                 clr = ImGui::GetColorU32(ImGuiCol_Button);

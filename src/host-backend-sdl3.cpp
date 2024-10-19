@@ -131,10 +131,6 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
 
     SDL_SetHint(SDL_HINT_IME_IMPLEMENTED_UI, "1");
 
-#if defined(IMPLUS_ENABLE_SCREEN_KEYBOARD)
-    SDL_SetHint(SDL_HINT_ENABLE_SCREEN_KEYBOARD, "1");
-#endif
-
 #if defined(IMPLUS_RENDER_GL3)
     auto window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_HIGH_PIXEL_DENSITY;
 #elif defined(IMPLUS_RENDER_VULKAN)
@@ -548,8 +544,42 @@ auto PrimaryMonitorWorkArea() -> Window::Bounds
 
 void InvalidateDeviceObjects() { Render::InvalidateDeviceObjects(); }
 
-auto SetFeature(Feature f, std::string const& value) -> bool { return false; }
-auto GetFeature(Feature f) -> std::string { return ""; }
-auto IsFeatureSupported(Feature f) -> bool { return false; }
+auto SetFeature(Feature f, std::string const& value) -> bool
+{
+    switch (f) {
+    case Feature::OnScreenKeyboard:
+        if (value == "on" || value == "off") {
+            SDL_SetHint(SDL_HINT_ENABLE_SCREEN_KEYBOARD, value == "on" ? "1" : "0");
+            return true;
+        }
+        break;
+    }
+    return false;
+}
+auto GetFeature(Feature f) -> std::string
+{
+    switch (f) {
+    case Feature::OnScreenKeyboard: {
+        if (auto h = SDL_GetHint(SDL_HINT_ENABLE_SCREEN_KEYBOARD)) {
+            auto v = std::string_view{h};
+            if (v == "1")
+                return "on";
+            else if (v == "0")
+                return "off";
+            else
+                return "";
+        }
+    } break;
+    };
+
+    return "";
+}
+
+auto IsFeatureSupported(Feature f) -> bool
+{
+    if (f == Feature::OnScreenKeyboard)
+        return true;
+    return false;
+}
 
 } // namespace ImPlus::Host

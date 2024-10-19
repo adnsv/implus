@@ -57,7 +57,7 @@ auto Checkbox(ImID id, CD_view const& content, bool& checked,
     }
 
     const ImRect check_bb(pos, pos + ImVec2{square_sz, square_sz});
-    ImGui::RenderNavHighlight(total_bb, id);
+    ImGui::RenderNavCursor(total_bb, id);
 
     ImGui::PushClipRect(total_bb.Min, total_bb.Max, true);
 
