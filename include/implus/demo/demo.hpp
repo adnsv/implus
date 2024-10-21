@@ -26,6 +26,7 @@
 #include "../pathbox.hpp"
 #include "../splitter.hpp"
 #include "../toolbar.hpp"
+#include "../touchscroll.hpp"
 
 namespace ImPlus::Demo {
 
@@ -934,6 +935,74 @@ struct DialogDemo : public DemoBase {
     }
 };
 
+struct ScrollingDemo : public DemoBase {
+    float sample_float_1 = 0.0f;
+    float sample_float_2 = 0.0f;
+    std::size_t sel_index = 0;
+    std::size_t n_items = 230;
+
+    ScrollingDemo()
+        : DemoBase{"Touch Scrolling", ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None}
+    {
+    }
+    ~ScrollingDemo() override {}
+
+    void Display() override
+    {
+        char buf[128];
+
+        auto makeid = ImPlus::ImIDMaker("##items");
+
+        for (auto i = std::size_t{0}; i < n_items; ++i) {
+            if (i == 0) {
+                ImGui::TextUnformatted("  --- just text");
+            }
+            else if (i == 2) {
+                ImGui::TextUnformatted("  --- just text");
+                ImGui::TextUnformatted("  --- just text");
+                ImGui::TextUnformatted("  --- just text");
+                ImGui::TextUnformatted("  --- just text");
+            }
+
+            if (i == 4) {
+                ImGui::Button("blah-blah");
+                ImGui::InputFloat("##blah", &sample_float_1);
+                ImGui::SliderFloat("##blah2", &sample_float_2, 0.0f, 100.0f);
+            }
+
+            auto item_selected = i == sel_index;
+
+
+            auto ItemID = makeid();
+
+            snprintf(buf, 128, "Item #%d (%.x)", int(i), ItemID);
+
+            auto caption = buf;
+            auto blk = ImPlus::TextBlock{caption, {0, 0}};
+
+            auto state = ImPlus::SelectableBox(ItemID, buf, item_selected,
+                ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap, blk.Size,
+                {},
+                [&](ImDrawList* dl, ImVec2 const& bb_min, ImVec2 const& bb_max,
+                    ImPlus::ColorSet const& cs) { blk.Render(dl, bb_min, bb_max, cs.Content); });
+
+            if (state.Pressed)
+                sel_index = i;
+        }
+
+        ImGui::Button("Button");
+
+        for (auto i = std::size_t{0}; i < 30; ++i) {
+            auto ItemID = makeid();
+            snprintf(buf, 128, "Another Item #%d (%.x)", int(i), ItemID);
+            ImGui::TextUnformatted(buf);
+        }
+
+        ImPlus::HandleTouchScroll(ImPlus::TouchScrollFlags_EnableMouseScrolling);
+    }
+};
+
+
 struct Window {
     ImPlus::Splitter splt{{
         // lhs band:
@@ -964,6 +1033,7 @@ struct Window {
         demo_list.push_back(std::make_unique<InputDemo>());
         demo_list.push_back(std::make_unique<DialogDemo>());
         demo_list.push_back(std::make_unique<AcceleratorDemo>());
+        demo_list.push_back(std::make_unique<ScrollingDemo>());
     }
 
     void Display(bool* p_open)

@@ -71,6 +71,7 @@ add_library(implus STATIC
     "src/toggler.cpp"
     "src/toolbar.cpp"
     "src/tooltip.cpp"
+    "src/touchscroll.cpp"
     "src/visuals.cpp"
 )
 
