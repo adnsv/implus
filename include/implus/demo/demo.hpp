@@ -975,7 +975,7 @@ struct ScrollingDemo : public DemoBase {
 
             auto ItemID = makeid();
 
-            snprintf(buf, 128, "Item #%d (%.x)", int(i), ItemID);
+            snprintf(buf, 128, "Item #%d (%x)", int(i), static_cast<unsigned int>(ItemID));
 
             auto caption = buf;
             auto blk = ImPlus::TextBlock{caption, {0, 0}};
@@ -994,7 +994,7 @@ struct ScrollingDemo : public DemoBase {
 
         for (auto i = std::size_t{0}; i < 30; ++i) {
             auto ItemID = makeid();
-            snprintf(buf, 128, "Another Item #%d (%.x)", int(i), ItemID);
+            snprintf(buf, 128, "Another Item #%d (%x)", int(i), static_cast<unsigned int>(ItemID));
             ImGui::TextUnformatted(buf);
         }
 
