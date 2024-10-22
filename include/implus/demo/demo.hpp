@@ -650,7 +650,7 @@ struct PaginationDemo : public DemoBase {
 
 struct TypographyDemo : public DemoBase {
     std::string label = "Hello, World!";
-    std::string descr = "01234567890123456789  \nabcdefghijkl   mnopqrstuvwxyz : 123";
+    std::string descr = "01234567890123456789  \nabcdefghijkl   mnopqrstuvwxyz : 123 汉漢한";
     parameter<Content::Layout> layout = {"layout", Content::Layout::HorzNear};
     parameter<bool> show_icon = {"show_icon", true};
 

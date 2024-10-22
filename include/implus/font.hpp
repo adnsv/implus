@@ -69,6 +69,12 @@ auto GetDataBlob(char const* facename) -> BlobInfo;
 
 inline auto Regular = Resource{};
 
+enum class Substitution {
+    Chinese,
+    Japanese,
+    Korean,
+};
+
 // LoadDefaults tries to load host's default GUI font
 auto LoadDefault() -> Resource;
 
@@ -78,9 +84,11 @@ auto Load(FileInfo const&, std::initializer_list<range> ranges, float point_size
 auto Load(BlobInfo const&, std::initializer_list<range> ranges, float point_size,
     Adjustment const& = {}) -> Resource;
 
+auto FindSubstitutionFontName(Substitution fs) -> std::string;
+
 // CreateScaledFont creates scaled subset of a previously loaded font
-auto CreateScaled(Resource h, float scale_factor, std::initializer_list<range> ranges = {})
-    -> Resource;
+auto CreateScaled(
+    Resource h, float scale_factor, std::initializer_list<range> ranges = {}) -> Resource;
 
 // SetMergeMode indicates that the font needs to be merged with the previously
 // loaded handle (this effectively implements as glyph fallback)

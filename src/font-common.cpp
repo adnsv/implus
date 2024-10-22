@@ -141,6 +141,9 @@ auto Load(BlobInfo const& bi, std::initializer_list<range> ranges, float point_s
     Adjustment const& adj) -> Resource
 {
     auto ff = face{bi};
+    if (!ff.loaded())
+        return {0};
+
     auto fm = ff.get_metrics();
 
     auto& rv = views.emplace_back();

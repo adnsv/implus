@@ -19,7 +19,7 @@ face::face(BlobInfo const& bi)
     if (ec)
         return;
 
-    loaded = true;
+    loaded_ = true;
 }
 
 face::~face()
@@ -34,7 +34,7 @@ auto face::get_name() -> std::string { return FT_Get_Postscript_Name(ftface); }
 
 auto face::glyph_index_of(unsigned codepoint) const -> std::uint16_t
 {
-    if (!loaded || !ftface)
+    if (!loaded_ || !ftface)
         return nglyph;
     auto g = FT_Get_Char_Index(ftface, codepoint);
     return g <= 0xffff ? uint16_t(g) : nglyph;
@@ -42,7 +42,7 @@ auto face::glyph_index_of(unsigned codepoint) const -> std::uint16_t
 
 auto face::get_metrics() const -> std::optional<metrics>
 {
-    if (!loaded || !ftface)
+    if (!loaded_ || !ftface)
         return {};
     return metrics{
         .ascender = ftface->ascender,
@@ -80,7 +80,7 @@ face::face(BlobInfo const& bi)
     if (!stbtt_InitFont(&info, data, face_offset))
         return;
 
-    loaded = true;
+    loaded_ = true;
 }
 
 face::~face() {}
@@ -115,7 +115,7 @@ auto face::get_name() -> std::string
 
 auto face::glyph_index_of(unsigned codepoint) const -> std::uint16_t
 {
-    if (!loaded)
+    if (!loaded_)
         return nglyph;
     auto g = stbtt_FindGlyphIndex(&info, codepoint);
     return g <= 0xffff ? uint16_t(g) : nglyph;
@@ -123,7 +123,7 @@ auto face::glyph_index_of(unsigned codepoint) const -> std::uint16_t
 
 auto face::get_metrics() const -> std::optional<metrics>
 {
-    if (!loaded)
+    if (!loaded_)
         return {};
     auto scale = stbtt_ScaleForMappingEmToPixels(&info, 1.0f);
     int ascent, descent, linegap;

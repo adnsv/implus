@@ -11,6 +11,9 @@ auto GetFileInfo(char const* facename) -> FileInfo
     auto fi = FileInfo{};
 
     auto fontconfig = FcInitLoadConfigAndFonts();
+    if (!fontconfig)
+        return fi;
+
     auto pattern = FcNameParse((FcChar8*)facename);
     FcConfigSubstitute(fontconfig, pattern, FcMatchPattern);
     FcDefaultSubstitute(pattern);
@@ -28,6 +31,7 @@ auto GetFileInfo(char const* facename) -> FileInfo
         FcConfigDestroy(fontconfig);
     }
     FcPatternDestroy(pattern);
+    FcFini();
     return fi;
 }
 
@@ -46,7 +50,7 @@ auto LoadDefault() -> Resource
     ni.PointSize = std::round(ni.PointSize * 96.0f / 72.0f);
 #endif
 #ifdef __linux__
-    // This adjustment seems to produce font sizes that better match other apps, 
+    // This adjustment seems to produce font sizes that better match other apps,
     // at least when running Gnome Desktop.
     ni.PointSize = std::round(ni.PointSize * 96.0f / 72.0f);
 #endif
@@ -57,6 +61,30 @@ auto LoadDefault() -> Resource
         Regular = r;
 
     return r;
+}
+
+auto get_fallback(std::string const& lang) -> std::string
+{
+    auto fontconfig = FcInitLoadConfigAndFonts();
+    if (!fontconfig)
+        return fi;
+
+    // todo: implement
+
+    FcFini();
+    return {};
+}
+
+auto FindSubstitutionFontName(Substitution fs) -> std::string
+{
+    auto name = std::string{};
+    switch (fs) {
+    case Substitution::Chinese: name = get_fallback("zh-CN"); break;
+    case Substitution::Japanese: name = get_fallback("ja-JP"); break;
+    case Substitution::Korean: name = get_fallback("ko-KR"); break;
+    }
+
+    return name;
 }
 
 } // namespace ImPlus::Font

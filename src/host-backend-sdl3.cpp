@@ -129,7 +129,7 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
         static auto _ = atexit{};
     }
 
-    SDL_SetHint(SDL_HINT_IME_IMPLEMENTED_UI, "1");
+    // SDL_SetHint(SDL_HINT_IME_IMPLEMENTED_UI, "composition");
 
 #if defined(IMPLUS_RENDER_GL3)
     auto window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_HIGH_PIXEL_DENSITY;

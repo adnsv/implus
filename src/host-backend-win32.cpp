@@ -91,6 +91,31 @@ void notifyResize(Window& w, Window::Size const& wh)
         w.handleResize(wh);
 }
 
+auto custom_composition() -> bool { return false; }
+
+auto setup_composition_font(HWND hwnd) -> bool
+{
+    auto success = false;
+    if (HIMC himc = ::ImmGetContext(hwnd)) {
+        LOGFONT lf = {0};
+        if (ImmGetCompositionFont(himc, &lf)) {
+            auto font_sz = ImGui::GetCurrentContext()->FontSize;
+
+            auto w = reinterpret_cast<Window*>(::GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+            if (w) {
+                auto scale = w->ContentScale();
+                lf.lfHeight = -std::round(font_sz);
+                lf.lfWidth = 0;
+                lf.lfCharSet = DEFAULT_CHARSET;
+                lf.lfFaceName[0] = 0;
+                success = ImmSetCompositionFont(himc, &lf);
+            }
+        }
+        ::ImmReleaseContext(hwnd, himc);
+    }
+    return success;
+}
+
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
@@ -109,8 +134,8 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 w->OnRefresh();
             notifyResize(*w, {width, height});
         }
-    }
         return 0;
+    }
 
     case WM_MOVE:
         if (auto w = reinterpret_cast<Window*>(::GetWindowLongPtrW(hWnd, GWLP_USERDATA))) {
@@ -142,6 +167,35 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     } break;
 
     case WM_DESTROY: ::PostQuitMessage(0); return 0;
+
+    case WM_INPUTLANGCHANGE:
+        if (!custom_composition())
+            setup_composition_font(hWnd);
+        break;
+
+    case WM_IME_SETCONTEXT:
+        if (custom_composition())
+            lParam &= ~ISC_SHOWUICOMPOSITIONWINDOW;
+        else {
+            if (wParam)
+                setup_composition_font(hWnd);
+        }
+        break;
+
+    case WM_IME_STARTCOMPOSITION:
+        if (custom_composition())
+            return 0;
+        break;
+
+    case WM_IME_COMPOSITION:
+        if (custom_composition())
+            return 0;
+        break;
+
+    case WM_IME_ENDCOMPOSITION:
+        if (custom_composition())
+            return 0;
+        break;
 
     case WM_INPUT: {
         UINT dwSize = 0;
@@ -238,11 +292,14 @@ static void Win32_PlatformSetImeData(
 
     //::ImmAssociateContextEx(hwnd, NULL, data->WantVisible ? IACE_DEFAULT : 0);
     if (HIMC himc = ::ImmGetContext(hwnd)) {
-        COMPOSITIONFORM composition_form = {};
-        composition_form.ptCurrentPos.x = (LONG)data->InputPos.x;
-        composition_form.ptCurrentPos.y = (LONG)data->InputPos.y;
-        composition_form.dwStyle = CFS_FORCE_POSITION;
-        ::ImmSetCompositionWindow(himc, &composition_form);
+        if (!custom_composition()) {
+            setup_composition_font(hwnd);
+            COMPOSITIONFORM composition_form = {};
+            composition_form.ptCurrentPos.x = (LONG)data->InputPos.x;
+            composition_form.ptCurrentPos.y = (LONG)data->InputPos.y;
+            composition_form.dwStyle = CFS_FORCE_POSITION;
+            ::ImmSetCompositionWindow(himc, &composition_form);
+        }
         CANDIDATEFORM candidate_form = {};
         candidate_form.dwStyle = CFS_CANDIDATEPOS;
         candidate_form.ptCurrentPos.x = (LONG)data->InputPos.x;

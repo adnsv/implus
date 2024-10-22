@@ -191,6 +191,7 @@ if(IMPLUS_DEFAULT_FONT_WIN32)
     message(STATUS "ImPlus -- Default font origin: Windows GDI")
     target_sources(implus PRIVATE "src/font-wingdi.cpp")
     target_compile_definitions(implus PUBLIC IMPLUS_DEFAULT_FONT_WIN32)
+    target_link_libraries(implus PUBLIC dwrite)
 
 elseif(IMPLUS_DEFAULT_FONT_GNOME)
     message(STATUS "ImPlus -- Default font origin: Gnome Desktop Settings")
