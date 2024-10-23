@@ -183,8 +183,8 @@ auto Load(FileInfo const& fi, std::initializer_list<range> ranges, float point_s
     return Load(fbi, ranges, point_size, adj);
 }
 
-float lastDpi = 0.0f;
-float lastOversample = 0.0f;
+static float lastDpi = 0.0f;
+static float lastOversample = 0.0f;
 
 auto CreateScaled(Resource h, float scale_factor, std::initializer_list<range> ranges) -> Resource
 {

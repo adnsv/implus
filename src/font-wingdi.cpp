@@ -17,38 +17,12 @@
 #define IMPLUS_DWRITE_FONT_FALLBACK
 
 #ifdef IMPLUS_DWRITE_FONT_FALLBACK
-#include <dwrite_2.h>
-#include <wrl.h>
+#include "internal/font-win32-dwrite.hpp"
 #endif
 
-namespace ImPlus::Font {
+#include "internal/strconv-win32.hpp"
 
-auto to_wstring(std::string_view s) -> std::wstring
-{
-    if (s.empty())
-        return {};
-    auto n = ::MultiByteToWideChar(CP_UTF8, 0, s.data(), int(s.size()), nullptr, 0);
-    if (!n)
-        return {};
-    auto ret = std::wstring{};
-    ret.resize(n);
-    ::MultiByteToWideChar(CP_UTF8, 0, s.data(), int(s.size()), ret.data(), n);
-    return ret;
-}
-auto to_string(std::wstring_view s) -> std::string
-{
-    if (s.empty())
-        return {};
-    auto n = ::WideCharToMultiByte(
-        CP_THREAD_ACP, 0, s.data(), int(s.size()), nullptr, 0, nullptr, nullptr);
-    if (!n)
-        return {};
-    auto ret = std::string{};
-    ret.resize(n);
-    ::WideCharToMultiByte(
-        CP_THREAD_ACP, 0, s.data(), int(s.size()), ret.data(), n, nullptr, nullptr);
-    return ret;
-}
+namespace ImPlus::Font {
 
 struct enumerator {
     HDC dc;
@@ -174,292 +148,132 @@ auto ChoosePreferredFont(std::vector<std::string> const& enumerated,
         return {};
 }
 
-#ifdef IMPLUS_DWRITE_FONT_FALLBACK
-
-class TextAnalysisSource : public IDWriteTextAnalysisSource {
-public:
-    // IUnknown interface
-    IFACEMETHOD(QueryInterface)(IID const& iid, OUT void** ppObject)
-    {
-        if (iid == __uuidof(IDWriteTextAnalysisSource)) {
-            *ppObject = static_cast<IDWriteTextAnalysisSource*>(this);
-            return S_OK;
-        }
-        else if (iid == __uuidof(IUnknown)) {
-            *ppObject = static_cast<IUnknown*>(static_cast<IDWriteTextAnalysisSource*>(this));
-            return S_OK;
-        }
-        else {
-            return E_NOINTERFACE;
-        }
-    }
-
-    IFACEMETHOD_(ULONG, AddRef)() { return InterlockedIncrement(&mRefValue); }
-
-    IFACEMETHOD_(ULONG, Release)()
-    {
-        ULONG newCount = InterlockedDecrement(&mRefValue);
-        if (newCount == 0)
-            delete this;
-
-        return newCount;
-    }
-
-public:
-    TextAnalysisSource(const wchar_t* text, UINT32 textLength, const wchar_t* localeName,
-        DWRITE_READING_DIRECTION readingDirection)
-        : mText(text)
-        , mTextLength(textLength)
-        , mLocaleName(localeName)
-        , mReadingDirection(readingDirection)
-        , mRefValue(0)
-    {
-    }
-
-    ~TextAnalysisSource() {}
-
-    // IDWriteTextAnalysisSource implementation
-    IFACEMETHODIMP GetTextAtPosition(
-        UINT32 textPosition, OUT WCHAR const** textString, OUT UINT32* textLength)
-    {
-        if (textPosition >= mTextLength) {
-            *textString = NULL;
-            *textLength = 0;
-        }
-        else {
-            *textString = mText + textPosition;
-            *textLength = mTextLength - textPosition;
-        }
-        return S_OK;
-    }
-
-    IFACEMETHODIMP GetTextBeforePosition(
-        UINT32 textPosition, OUT WCHAR const** textString, OUT UINT32* textLength)
-    {
-        if (textPosition == 0 || textPosition > mTextLength) {
-            *textString = NULL;
-            *textLength = 0;
-        }
-        else {
-            *textString = mText;
-            *textLength = textPosition;
-        }
-        return S_OK;
-    }
-
-    IFACEMETHODIMP_(DWRITE_READING_DIRECTION)
-    GetParagraphReadingDirection() { return mReadingDirection; }
-
-    IFACEMETHODIMP GetLocaleName(
-        UINT32 textPosition, OUT UINT32* textLength, OUT WCHAR const** localeName)
-    {
-        *localeName = mLocaleName;
-        *textLength = mTextLength - textPosition;
-        return S_OK;
-    }
-
-    IFACEMETHODIMP
-    GetNumberSubstitution(UINT32 textPosition, OUT UINT32* textLength,
-        OUT IDWriteNumberSubstitution** numberSubstitution)
-    {
-        *numberSubstitution = NULL;
-        *textLength = mTextLength - textPosition;
-        return S_OK;
-    }
-
-protected:
-    UINT32 mTextLength;
-    const wchar_t* mText;
-    const wchar_t* mLocaleName;
-    DWRITE_READING_DIRECTION mReadingDirection;
-    ULONG mRefValue;
-
-private:
-    // No copy construction allowed.
-    TextAnalysisSource(const TextAnalysisSource& b) = delete;
-    TextAnalysisSource& operator=(TextAnalysisSource const&) = delete;
-};
-
-auto analyze(IDWriteFontFallback* pFontFallback, std::string_view sample,
-    const wchar_t* localeName) -> std::string
+inline auto GetFontFileSourceInfo(IDWriteFontFace* ff) -> std::optional<FileInfo>
 {
-    using namespace Microsoft::WRL;
-
-    auto text = to_wstring(sample);
-    auto source = TextAnalysisSource(
-        text.data(), text.length(), localeName, DWRITE_READING_DIRECTION_LEFT_TO_RIGHT);
-
-    // Map the Chinese character to a specific font
-    UINT32 mappedLength = 0;
-    ComPtr<IDWriteFont> pMappedFont;
-    FLOAT scale = 1.0f;
-
-    auto hr = pFontFallback->MapCharacters(&source, 0, 1, nullptr, nullptr,
-        DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
-        &mappedLength, &pMappedFont, &scale);
-
-    if (FAILED(hr) || !pMappedFont) {
+    if (!ff)
         return {};
-    }
-
-    auto result = std::string{};
-
-    ComPtr<IDWriteFontFamily> pFontFamily;
-    hr = pMappedFont->GetFontFamily(&pFontFamily);
-    if (FAILED(hr))
+    auto file_path = GetFontFilePath(ff);
+    if (file_path.empty())
         return {};
 
-    ComPtr<IDWriteFontFace> pFontFace;
-    hr = pMappedFont->CreateFontFace(&pFontFace);
-    if (FAILED(hr))
-        return {};
-
-    auto face_index = pFontFace->GetIndex();
-
-    UINT32 fileCount = 0;
-    hr = pFontFace->GetFiles(&fileCount, nullptr);
-    if (FAILED(hr) || fileCount != 1)
-        return {};
-
-    std::vector<ComPtr<IDWriteFontFile>> fontFiles(fileCount);
-    hr = pFontFace->GetFiles(&fileCount, reinterpret_cast<IDWriteFontFile**>(fontFiles.data()));
-    if (FAILED(hr) || fileCount != 1)
-        return {};
-
-    auto filepath = std::filesystem::path{};
-
-    for (auto const& fontFile : fontFiles) {
-        const void* fontFileReferenceKey;
-        UINT32 fontFileReferenceKeySize;
-        hr = fontFile->GetReferenceKey(&fontFileReferenceKey, &fontFileReferenceKeySize);
-        if (FAILED(hr))
-            return {};
-
-        ComPtr<IDWriteFontFileLoader> loader;
-        hr = fontFile->GetLoader(&loader);
-        if (FAILED(hr))
-            return {};
-
-        ComPtr<IDWriteLocalFontFileLoader> localLoader;
-        hr = loader.As(&localLoader);
-        if (FAILED(hr))
-            return {};
-
-        UINT32 pathLength = 0;
-        hr = localLoader->GetFilePathLengthFromKey(
-            fontFileReferenceKey, fontFileReferenceKeySize, &pathLength);
-        if (FAILED(hr))
-            return {};
-
-        std::wstring filePath(pathLength + 1, L'\0');
-        localLoader->GetFilePathFromKey(
-            fontFileReferenceKey, fontFileReferenceKeySize, &filePath[0], pathLength + 1);
-
-        filepath = filePath;
-    }
-
-    // Get the localized family names
-    ComPtr<IDWriteLocalizedStrings> pFamilyNames;
-    hr = pFontFamily->GetFamilyNames(&pFamilyNames);
-    if (FAILED(hr))
-        return {};
-
-    // Try to find the English name
-    UINT32 index = 0;
-    BOOL exists = FALSE;
-    hr = pFamilyNames->FindLocaleName(L"en-us", &index, &exists);
-    if (!exists) {
-        hr = pFamilyNames->FindLocaleName(L"en", &index, &exists);
-    }
-    if (!exists) {
-        index = 0; // Use the first available name
-    }
-
-    // Get the length of the font family name
-    UINT32 length = 0;
-    hr = pFamilyNames->GetStringLength(index, &length);
-    if (SUCCEEDED(hr)) {
-        // Retrieve the font family name
-        std::wstring familyName(length + 1, L'\0');
-        hr = pFamilyNames->GetString(index, &familyName[0], length + 1);
-        if (SUCCEEDED(hr)) {
-            result = to_string(familyName);
-        }
-    }
-
-    return result;
+    return FileInfo{
+        .Filename = std::move(file_path),
+        .FaceIndex = int(ff->GetIndex()),
+    };
 }
 
-auto find_substitution(std::string const& sample) -> std::string
+inline auto GetFontFileSourceInfo(IDWriteFont* font) -> std::optional<FileInfo>
 {
-    using namespace Microsoft::WRL;
-    auto hr = CoInitialize(nullptr);
-    if (FAILED(hr))
-        return {};
+    return GetFontFileSourceInfo(GetFontFace(font).Get());
+}
 
-    ComPtr<IDWriteFactory2> pDWriteFactory;
-    hr =
-        DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory2), &pDWriteFactory);
-    if (FAILED(hr)) {
-        CoUninitialize();
-        return {};
-    }
+void Test()
+{
+    auto _ = ComInitializer();
+    auto factory = DWriteFactory{};
 
-    // Get the system font fallback mechanism
-    ComPtr<IDWriteFontFallback> pFontFallback;
-    hr = pDWriteFactory->GetSystemFontFallback(&pFontFallback);
-    if (FAILED(hr)) {
-        CoUninitialize();
-        return {};
-    }
+    auto dflt_name = std::string{};
+    auto dflt_attrs = FontAttributes{};
+    auto dflt_size = 12;
+
+    GetSystemDefaultUIFontInfo(dflt_name, dflt_attrs, dflt_size);
+
+    auto fonts = factory.GetSystemFontCollection();
+    auto dflt_family = FindFontFamily(fonts.Get(), dflt_name);
+    if (!dflt_family)
+        dflt_family = FindFontFamily(fonts.Get(), "Segoe UI");
+    if (!dflt_family)
+        dflt_family = FindFontFamily(fonts.Get(), "Tahoma");
+    if (!dflt_family)
+        dflt_family = FindFontFamily(fonts.Get(), "Arial");
+
+    auto dflt_family_name = GetFontFamilyName(dflt_family.Get());
+
+    auto default_font = GetFirstMatchingFont(dflt_family.Get(), dflt_attrs);
+    auto default_full_name =
+        GetInformationalString(default_font.Get(), DWRITE_INFORMATIONAL_STRING_FULL_NAME);
+
+    auto default_src = GetFontFileSourceInfo(default_font.Get());
+    if (!default_src)
+        return;
+
+    auto fallback = factory.GetSystemFontFallback();
+    if (!fallback)
+        return;
 
     wchar_t localeName[LOCALE_NAME_MAX_LENGTH];
-    if (!GetUserDefaultLocaleName(localeName, LOCALE_NAME_MAX_LENGTH)) {
-        CoUninitialize();
-        return {};
+    if (!GetUserDefaultLocaleName(localeName, LOCALE_NAME_MAX_LENGTH))
+        GetSystemDefaultLocaleName(localeName, LOCALE_NAME_MAX_LENGTH);
+
+    auto chinese_font = LookupFontForText(fallback.Get(), dflt_attrs, "汉", localeName);
+    if (!chinese_font)
+        chinese_font = GetFirstMatchingFont(
+            FindFontFamily(fonts.Get(), {"Microsoft YaHei", "SimSun", "Microsoft JhengHei"}).Get(),
+            dflt_attrs);
+    auto chinese_full_name =
+        GetInformationalString(chinese_font.Get(), DWRITE_INFORMATIONAL_STRING_FULL_NAME);
+    auto chinese_src = GetFontFileSourceInfo(chinese_font.Get());
+
+    auto japanese_font = LookupFontForText(fallback.Get(), dflt_attrs, "漢", localeName);
+    if (!japanese_font)
+        japanese_font = GetFirstMatchingFont(
+            FindFontFamily(fonts.Get(), {"Yu Gothic", "Meiryo", "MS UI Gothic", "MS Gothic"}).Get(),
+            dflt_attrs);
+    auto japanese_full_name =
+        GetInformationalString(japanese_font.Get(), DWRITE_INFORMATIONAL_STRING_FULL_NAME);
+    auto japanese_src = GetFontFileSourceInfo(japanese_font.Get());
+
+    auto korean_font = LookupFontForText(fallback.Get(), dflt_attrs, "한", localeName);
+    if (!korean_font)
+        korean_font = GetFirstMatchingFont(
+            FindFontFamily(fonts.Get(), {"Malgun Gothic", "Gulim", "Batang"}).Get(), dflt_attrs);
+    auto korean_full_name =
+        GetInformationalString(korean_font.Get(), DWRITE_INFORMATIONAL_STRING_FULL_NAME);
+    auto korean_src = GetFontFileSourceInfo(korean_font.Get());
+
+    auto r = Load(*default_src, {}, dflt_size, Adjust[default_full_name]);
+    auto c = Resource{};
+    if (chinese_src && *chinese_src != *default_src) {
+        c = Load(*chinese_src,
+            {
+                Ranges::CJKSymbolsandPunctuation,
+                Ranges::CJKUnifiedIdeographsExtensionA,
+                Ranges::CJKUnifiedIdeographs,
+                Ranges::CJKCompatibilityIdeographs,
+            },
+            dflt_size, Adjust[chinese_full_name]);
+        SetMergeMode(c);
     }
-
-    auto result = analyze(pFontFallback.Get(), sample, localeName);
-
-    CoUninitialize();
-    return result;
-}
-
-#endif
-
-auto FindSubstitutionFontName(Substitution fs) -> std::string
-{
-    auto name = std::string{};
-    switch (fs) {
-    case Substitution::Chinese:
-#ifdef IMPLUS_DWRITE_FONT_FALLBACK
-        name = find_substitution("汉");
-#endif
-        if (name.empty())
-            name = ChoosePreferredFont(GetFontsForCharset(GB2312_CHARSET),
-                {"Microsoft YaHei", "SimSun", "Microsoft JhengHei"});
-        break;
-
-    case Substitution::Japanese:
-#ifdef IMPLUS_DWRITE_FONT_FALLBACK
-        name = find_substitution("漢");
-#endif
-        if (name.empty())
-            name = ChoosePreferredFont(
-                GetFontsForCharset(SHIFTJIS_CHARSET), {"Meiryo", "MS Gothic", "Yu Gothic"});
-        break;
-
-    case Substitution::Korean:
-#ifdef IMPLUS_DWRITE_FONT_FALLBACK
-        name = find_substitution("한");
-#endif
-        if (name.empty())
-            name = ChoosePreferredFont(
-                GetFontsForCharset(HANGEUL_CHARSET), {"Malgun Gothic", "Gulim", "Batang"});
-        break;
+    auto j = Resource{};
+    if (japanese_src && *japanese_src != *default_src) {
+        j = Load(*japanese_src,
+            {
+                Ranges::Hiragana,
+                Ranges::Katakana,
+                Ranges::KatakanaPhoneticExtensions,
+                Ranges::Kanbun,
+                Ranges::CJKSymbolsandPunctuation,
+                Ranges::CJKUnifiedIdeographs,
+                Ranges::CJKCompatibilityIdeographs,
+                Ranges::HalfwidthandFullwidthForms,
+            },
+            dflt_size, Adjust[japanese_full_name]);
+        SetMergeMode(j);
     }
-
-    return name;
+    auto k = Resource{};
+    if (korean_src && *korean_src != *default_src) {
+        k = Load(*korean_src, {
+            Ranges::HangulJamo,
+            Ranges::HangulSyllables,
+            Ranges::HangulCompatibilityJamo,
+            Ranges::HangulJamoExtendedA,
+            Ranges::HangulJamoExtendedB,
+            Ranges::CJKUnifiedIdeographs,
+            Ranges::CJKCompatibilityIdeographs,
+            Ranges::HalfwidthandFullwidthForms,
+        }, dflt_size, Adjust[korean_full_name]);
+        SetMergeMode(k);
+    }
 }
 
 } // namespace ImPlus::Font

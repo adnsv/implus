@@ -46,6 +46,10 @@ struct FileInfo {
     std::filesystem::path Filename;
     int FaceIndex = 0;
 };
+inline auto operator==(FileInfo const& a, FileInfo const& b)
+{
+    return a.Filename == b.Filename && a.FaceIndex == b.FaceIndex;
+}
 
 struct BlobInfo {
     std::span<std::byte const> Blob;
@@ -84,7 +88,7 @@ auto Load(FileInfo const&, std::initializer_list<range> ranges, float point_size
 auto Load(BlobInfo const&, std::initializer_list<range> ranges, float point_size,
     Adjustment const& = {}) -> Resource;
 
-auto FindSubstitutionFontName(Substitution fs) -> std::string;
+void Test();
 
 // CreateScaledFont creates scaled subset of a previously loaded font
 auto CreateScaled(

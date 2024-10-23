@@ -1,10 +1,11 @@
 #pragma once
 
-#include <cstdint>
+#include <array>
 #include <charconv>
 #include <concepts>
 #include <cstdint>
 #include <initializer_list>
+#include <span>
 #include <string_view>
 
 namespace ImPlus::Font {
@@ -26,9 +27,7 @@ struct range {
     constexpr range(range const&) = default;
 };
 
-template <typename Proc>
-auto decode_ranges(
-    std::string_view s, Proc&& proc) -> bool
+template <typename Proc> auto decode_ranges(std::string_view s, Proc&& proc) -> bool
 {
     unsigned lo, hi;
 
@@ -38,8 +37,7 @@ auto decode_ranges(
     };
 
     auto read_cp = [&](unsigned& cp) -> bool {
-        if (auto [p, ec] =
-                std::from_chars(s.data(), s.data() + s.size(), cp, 16);
+        if (auto [p, ec] = std::from_chars(s.data(), s.data() + s.size(), cp, 16);
             ec == std::errc{}) {
             s.remove_prefix(p - s.data());
             return true;
@@ -242,6 +240,42 @@ constexpr range SmallFormVariants = {0xfe50, 0xfe6f};
 constexpr range ArabicPresentationFormsB = {0xfe70, 0xfeff};
 constexpr range HalfwidthandFullwidthForms = {0xff00, 0xffef};
 constexpr range Specials = {0xfff0, 0xffff};
+
+namespace detail {
+inline const auto ChineseRanges_ = std::array<range, 4>{
+    CJKSymbolsandPunctuation,
+    CJKUnifiedIdeographsExtensionA,
+    CJKUnifiedIdeographs,
+    CJKCompatibilityIdeographs,
+};
+
+inline const auto JapaneseRanges_ = std::array<range, 8>{
+    Hiragana,
+    Katakana,
+    KatakanaPhoneticExtensions,
+    Kanbun,
+    CJKSymbolsandPunctuation,
+    CJKUnifiedIdeographs,
+    CJKCompatibilityIdeographs,
+    HalfwidthandFullwidthForms,
+};
+
+inline const auto KoreanRanges_ = std::array<range, 8>{
+    HangulJamo,
+    HangulSyllables,
+    HangulCompatibilityJamo,
+    HangulJamoExtendedA,
+    HangulJamoExtendedB,
+    CJKUnifiedIdeographs,
+    CJKCompatibilityIdeographs,
+    HalfwidthandFullwidthForms,
+};
+} // namespace detail
+
+inline const auto ChineseRanges = std::span<range const>(detail::ChineseRanges_);
+inline const auto JapaneseRanges = std::span<range const>(detail::JapaneseRanges_);
+inline const auto KoreanRanges = std::span<range const>(detail::KoreanRanges_);
+
 } // namespace Ranges
 
-} // namespace ImPlus::Fontman
+} // namespace ImPlus::Font
