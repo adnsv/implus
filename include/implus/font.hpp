@@ -69,8 +69,6 @@ struct BlobInfo {
     }
 };
 
-auto GetDataBlob(char const* facename) -> BlobInfo;
-
 inline auto Regular = Resource{};
 
 enum class Substitution {
@@ -87,8 +85,6 @@ auto Load(FileInfo const&, std::initializer_list<range> ranges, float point_size
 
 auto Load(BlobInfo const&, std::initializer_list<range> ranges, float point_size,
     Adjustment const& = {}) -> Resource;
-
-void Test();
 
 // CreateScaledFont creates scaled subset of a previously loaded font
 auto CreateScaled(

@@ -38,10 +38,6 @@ auto GetFileInfo(char const* facename) -> FileInfo
 auto LoadDefault() -> Resource
 {
     auto ni = GetDefaultInfo();
-#ifdef IMPLUS_REPLACE_SEGOE_WITH_CALIBRI
-    if (fi.name == "Segoe UI")
-        fi.name = "Calibri";
-#endif
 
 #ifdef __APPLE__
     // NSFont.systemFont returns useless name, luckily, fontconfig seems to

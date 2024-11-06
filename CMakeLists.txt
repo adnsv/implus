@@ -210,12 +210,6 @@ else()
 
 endif()
 
-option(IMPLUS_REPLACE_SEGOE_WITH_CALIBRI "Replace autodetected Segoe Font with Calibri" OFF)
-
-if(IMPLUS_REPLACE_SEGOE_WITH_CALIBRI)
-    target_compile_definitions(implus PUBLIC "IMPLUS_REPLACE_SEGOE_WITH_CALIBRI")
-endif(IMPLUS_REPLACE_SEGOE_WITH_CALIBRI)
-
 target_include_directories(implus
     PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
     PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")

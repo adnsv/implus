@@ -57,7 +57,7 @@ struct enumerator {
 using blob = std::vector<std::byte>;
 static auto blobs = std::unordered_map<std::string, blob>{};
 
-auto GetDataBlob(char const* facename) -> BlobInfo
+/*auto GetDataBlob(char const* facename) -> BlobInfo
 {
     auto s = std::string{facename};
     auto& b = blobs[s];
@@ -71,7 +71,7 @@ auto GetDataBlob(char const* facename) -> BlobInfo
     }
 
     return BlobInfo{b, 0};
-}
+}*/
 
 auto GetDefaultInfo() -> NameInfo
 {
@@ -98,56 +98,6 @@ auto GetDefaultInfo() -> NameInfo
     return ni;
 }
 
-auto LoadDefault() -> Resource
-{
-    auto ni = GetDefaultInfo();
-#ifdef IMPLUS_REPLACE_SEGOE_WITH_CALIBRI
-    if (ni.name == "Segoe UI")
-        ni.name = "Calibri";
-#endif
-
-    auto bi = GetDataBlob(ni.Name.c_str());
-    auto r = Load(bi, {}, ni.PointSize, Adjust[ni.Name]);
-    if (r)
-        Regular = r;
-    return r;
-}
-
-auto GetFontsForCharset(BYTE charset) -> std::vector<std::string>
-{
-    LOGFONTW lf = {0};
-    lf.lfHeight = -11; // Set a reasonable size
-    lf.lfCharSet = charset;
-
-    auto names = std::vector<std::string>{};
-
-    auto EnumFontsCallback = [](LOGFONT const* lpelfe, TEXTMETRIC const* lpntme, DWORD FontType,
-                                 LPARAM lParam) -> int {
-        auto names = reinterpret_cast<std::vector<std::string>*>(lParam);
-        names->emplace_back(to_string(lpelfe->lfFaceName));
-        return 1;
-    };
-
-    auto dc = ::CreateCompatibleDC(0);
-    EnumFontFamiliesExW(dc, &lf, (FONTENUMPROC)EnumFontsCallback, (LPARAM)&names, 0);
-    ::DeleteDC(dc);
-
-    return names;
-}
-
-auto ChoosePreferredFont(std::vector<std::string> const& enumerated,
-    std::vector<std::string> const& preferred) -> std::string
-{
-    for (const auto& n : preferred)
-        if (auto it = std::find(enumerated.begin(), enumerated.end(), n); it != enumerated.end())
-            return *it;
-
-    if (!enumerated.empty())
-        return enumerated.front();
-    else
-        return {};
-}
-
 inline auto GetFontFileSourceInfo(IDWriteFontFace* ff) -> std::optional<FileInfo>
 {
     if (!ff)
@@ -167,6 +117,45 @@ inline auto GetFontFileSourceInfo(IDWriteFont* font) -> std::optional<FileInfo>
     return GetFontFileSourceInfo(GetFontFace(font).Get());
 }
 
+auto LoadDefault() -> Resource
+{
+    auto _ = ComInitializer();
+    auto factory = DWriteFactory{};
+
+    auto dflt_name = std::string{};
+    auto dflt_attrs = FontAttributes{};
+    auto dflt_size = 12;
+
+    GetSystemDefaultUIFontInfo(dflt_name, dflt_attrs, dflt_size);
+
+    auto fonts = factory.GetSystemFontCollection();
+    auto dflt_family = FindFontFamily(fonts.Get(), dflt_name);
+    if (!dflt_family)
+        dflt_family = FindFontFamily(fonts.Get(), "Segoe UI");
+    if (!dflt_family)
+        dflt_family = FindFontFamily(fonts.Get(), "Tahoma");
+    if (!dflt_family)
+        dflt_family = FindFontFamily(fonts.Get(), "Arial");
+
+    auto dflt_family_name = GetFontFamilyName(dflt_family.Get());
+
+    auto default_font = GetFirstMatchingFont(dflt_family.Get(), dflt_attrs);
+    auto default_full_name =
+        GetInformationalString(default_font.Get(), DWRITE_INFORMATIONAL_STRING_FULL_NAME);
+
+    auto default_src = GetFontFileSourceInfo(default_font.Get());
+    if (!default_src)
+        return {};
+
+
+    auto r = Load(*default_src, {}, dflt_size, Adjust[default_full_name]);
+    if (r)
+        Regular = r;
+    return r;
+}
+
+
+#if 0
 void Test()
 {
     auto _ = ComInitializer();
@@ -275,5 +264,6 @@ void Test()
         SetMergeMode(k);
     }
 }
+#endif
 
 } // namespace ImPlus::Font
