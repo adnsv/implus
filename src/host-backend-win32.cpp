@@ -21,7 +21,9 @@
 #include <dinput.h>
 #endif
 
+#ifdef IMPLUS_ENABLE_WIN32_OSK
 #include "win32-osk.hpp"
+#endif
 
 #include <algorithm>
 #include <cstddef>
@@ -78,7 +80,9 @@ static auto last_keyboard_physical = 0.0;
 static auto last_keyboard_virtual = 0.0;
 
 // features
+#ifdef IMPLUS_ENABLE_WIN32_OSK
 static auto OnScreenKeyboardFeature = std::string{"off"};
+#endif
 
 void notifyMove(Window& w, Window::Pos const& xy)
 {
@@ -228,6 +232,7 @@ auto attrib_style_flags(WindowAttrib attr) -> unsigned
     return ret;
 }
 
+#ifdef IMPLUS_ENABLE_WIN32_OSK
 static void Win32_PlatformSetImeData(
     ImGuiContext*, ImGuiViewport* viewport, ImGuiPlatformImeData* data)
 {
@@ -275,6 +280,7 @@ static void Win32_PlatformSetImeData(
         }
     }
 }
+#endif
 
 Window::Window(InitLocation const& loc, char const* title, Attrib attr)
     : regular_attr_{attr}
@@ -364,8 +370,10 @@ Window::Window(InitLocation const& loc, char const* title, Attrib attr)
 
         ImGui_ImplWin32_Init(hwnd);
 
+#ifdef IMPLUS_ENABLE_WIN32_OSK
         auto& platform_io = ImGui::GetPlatformIO();
         platform_io.Platform_SetImeDataFn = Win32_PlatformSetImeData;
+#endif        
 
         Render::SetupImplementation(*this);
     }
@@ -740,26 +748,32 @@ void InvalidateDeviceObjects() { ImGui_ImplDX11_InvalidateDeviceObjects(); }
 auto SetFeature(Feature f, std::string const& value) -> bool
 {
     switch (f) {
+#ifdef IMPLUS_ENABLE_WIN32_OSK
     case Feature::OnScreenKeyboard:
         if (value == "on" || value == "off") {
             OnScreenKeyboardFeature = value;
             return true;
         }
         break;
+#endif
     }
     return false;
 }
 auto GetFeature(Feature f) -> std::string
 {
     switch (f) {
+#ifdef IMPLUS_ENABLE_WIN32_OSK
     case Feature::OnScreenKeyboard: return OnScreenKeyboardFeature;
+#endif
     default: return "";
     };
 }
 auto IsFeatureSupported(Feature f) -> bool
 {
+#ifdef IMPLUS_ENABLE_WIN32_OSK
     if (f == Feature::OnScreenKeyboard)
         return true;
+#endif
     return false;
 }
 

@@ -138,7 +138,12 @@ elseif(IMPLUS_HOST_IMPL STREQUAL "SDL3")
     target_link_libraries(implus PUBLIC "SDL3::SDL3")
 
 elseif(IMPLUS_HOST_IMPL STREQUAL "WIN32")
-    target_sources(implus PUBLIC "src/host-backend-win32.cpp" "src/win32-osk.cpp")
+    option(IMPLUS_ENABLE_WIN32_OSK "Enable support for WIN32 OSK" OFF)
+    if(IMPLUS_ENABLE_WIN32_OSK)
+        target_sources(implus PUBLIC "src/win32-osk.cpp")
+        target_compile_definitions(implus PUBLIC "IMPLUS_ENABLE_WIN32_OSK")
+    endif()
+    target_sources(implus PUBLIC "src/host-backend-win32.cpp")
     target_compile_definitions(implus PUBLIC "IMPLUS_HOST_NATIVE_WIN32")
     target_link_libraries(implus PUBLIC "SetupAPI" "Hid")
 
